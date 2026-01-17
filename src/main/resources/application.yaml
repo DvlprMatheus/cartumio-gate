@@ -12,7 +12,12 @@ spring:
     hibernate:
       ddl-auto: none
     show-sql: true
+    open-in-view: true
   flyway:
     enabled: true
     locations:
       - classpath:db/migration
+ratelimit:
+  default:
+    capacity: 10
+    refill: 1m
