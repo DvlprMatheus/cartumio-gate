@@ -1,5 +1,6 @@
-package com.cartumio.gate.dto;
+package com.cartumio.gate.dto.request;
 
+import java.io.Serial;
 import java.io.Serializable;
 
 import jakarta.validation.constraints.Email;
@@ -10,5 +11,6 @@ public record WaitlistUserRequest(
         @NotBlank(message = "Last name is required") String lastName,
         @NotBlank(message = "Email is required") @Email(message = "Invalid email address") String email)
         implements Serializable {
+    @Serial
     private static final long serialVersionUID = 1L;
 }

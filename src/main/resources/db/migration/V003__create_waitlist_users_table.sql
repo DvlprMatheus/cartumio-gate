@@ -1,4 +1,4 @@
--- Migration V001: Create waitlist_users table
+-- Migration V003: Create waitlist_users table
 -- Description: Create the waitlist_users table to store waitlist user information
 -- Author: Matheus Cruz
 
@@ -8,8 +8,10 @@ CREATE TABLE waitlist_users (
     last_name VARCHAR(50) NOT NULL,
     email VARCHAR(255) NOT NULL UNIQUE,
     is_confirmed BOOLEAN NOT NULL DEFAULT FALSE,
+    system_locale_id UUID NOT NULL,
     created_at TIMESTAMPTZ NOT NULL,
-    updated_at TIMESTAMPTZ NULL
+    updated_at TIMESTAMPTZ NULL,
+    CONSTRAINT fk_waitlist_users_system_locale FOREIGN KEY (system_locale_id) REFERENCES system_locales(id)
 );
 
 -- Indexes
@@ -27,5 +29,6 @@ COMMENT ON COLUMN waitlist_users.first_name IS 'First name of the waitlist user'
 COMMENT ON COLUMN waitlist_users.last_name IS 'Last name of the waitlist user';
 COMMENT ON COLUMN waitlist_users.email IS 'Email of the waitlist user';
 COMMENT ON COLUMN waitlist_users.is_confirmed IS 'Flag to indicate if the waitlist user is confirmed';
+COMMENT ON COLUMN waitlist_users.system_locale_id IS 'Foreign key reference to system_locales table';
 COMMENT ON COLUMN waitlist_users.created_at IS 'Timestamp when the waitlist user was created';
 COMMENT ON COLUMN waitlist_users.updated_at IS 'Timestamp when the waitlist user was updated';

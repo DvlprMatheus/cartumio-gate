@@ -18,9 +18,12 @@ spring:
     locations:
       - classpath:db/migration
 
-brevo:Ou
+brevo:
   api-key: ${BREVO_API_KEY}
   base-url: ${BREVO_API_BASE_URL}
+  sender:
+    name: ${BREVO_DEFAULT_SENDER_NAME}
+    email: ${BREVO_DEFAULT_SENDER_EMAIL}
 
 ratelimit:
   default:
