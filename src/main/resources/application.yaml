@@ -18,6 +18,9 @@ spring:
     locations:
       - classpath:db/migration
 
+origin:
+  base-url: ${ORIGIN_BASE_URL:http://localhost:3000}
+
 brevo:
   api-key: ${BREVO_API_KEY}
   base-url: ${BREVO_API_BASE_URL}
