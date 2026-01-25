@@ -14,6 +14,7 @@ import org.junit.jupiter.api.Test;
 import org.springframework.test.util.ReflectionTestUtils;
 
 import com.cartumio.gate.config.email.BrevoProperties;
+import com.cartumio.gate.domain.email.Email;
 import com.cartumio.gate.domain.email.EmailTemplate;
 import com.cartumio.gate.domain.token.TokenType;
 import com.cartumio.gate.dto.response.token.TokenResponse;
@@ -24,7 +25,7 @@ class ConfirmationEmailServiceTest {
 
     private ConfirmationEmailService confirmationEmailService;
     private BrevoProperties brevoProperties;
-    private EmailService emailService;
+    private EmailProducer emailProducer;
     private EmailTemplateService emailTemplateService;
     private TokenService tokenService;
     private EmailTemplate emailTemplate;
@@ -45,11 +46,11 @@ class ConfirmationEmailServiceTest {
     @BeforeEach
     void setUp() {
         brevoProperties = mock(BrevoProperties.class);
-        emailService = mock(EmailService.class);
+        emailProducer = mock(EmailProducer.class);
         emailTemplateService = mock(EmailTemplateService.class);
         tokenService = mock(TokenService.class);
         confirmationEmailService = new ConfirmationEmailService(
-                brevoProperties, emailService, emailTemplateService, tokenService);
+                brevoProperties, emailProducer, emailTemplateService, tokenService);
 
         ReflectionTestUtils.setField(confirmationEmailService, "originBaseUrl", ORIGIN_BASE_URL);
 
@@ -80,7 +81,7 @@ class ConfirmationEmailServiceTest {
 
         verify(emailTemplateService).findActiveByCodeAndLanguage(TEMPLATE_CODE, LANGUAGE);
         verify(tokenService).generateToken(TokenType.EMAIL_CONFIRMATION);
-        verify(emailService).processEmail(any(com.cartumio.gate.domain.email.Email.class));
+        verify(emailProducer).sendEmail(any(Email.class));
     }
 
     @Test
@@ -90,7 +91,7 @@ class ConfirmationEmailServiceTest {
 
         verify(emailTemplateService).findActiveByCodeAndLanguage(TEMPLATE_CODE, LANGUAGE);
         verify(tokenService).generateToken(TokenType.EMAIL_CONFIRMATION);
-        verify(emailService).processEmail(any(com.cartumio.gate.domain.email.Email.class));
+        verify(emailProducer).sendEmail(any(Email.class));
     }
 
     @Test
@@ -100,7 +101,7 @@ class ConfirmationEmailServiceTest {
 
         verify(emailTemplateService).findActiveByCodeAndLanguage(TEMPLATE_CODE, LANGUAGE);
         verify(tokenService).generateToken(TokenType.EMAIL_CONFIRMATION);
-        verify(emailService).processEmail(any(com.cartumio.gate.domain.email.Email.class));
+        verify(emailProducer).sendEmail(any(Email.class));
     }
 
     @Test
@@ -110,6 +111,6 @@ class ConfirmationEmailServiceTest {
 
         verify(emailTemplateService).findActiveByCodeAndLanguage(TEMPLATE_CODE, LANGUAGE);
         verify(tokenService).generateToken(TokenType.EMAIL_CONFIRMATION);
-        verify(emailService).processEmail(any(com.cartumio.gate.domain.email.Email.class));
+        verify(emailProducer).sendEmail(any(Email.class));
     }
 }

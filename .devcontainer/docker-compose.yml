@@ -1,5 +1,11 @@
 volumes:
   postgres-gate-data:
+  rabbitmq-gate-data:
+  shell-history:
+
+networks:
+  gate-network:
+    driver: bridge
 
 services:
   app:
@@ -10,11 +16,17 @@ services:
     env_file:
       - .env
     environment:
-      POSTGRES_HOSTNAME: ${POSTGRES_HOSTNAME}
+      POSTGRES_HOSTNAME: db
+      RABBITMQ_HOST: rabbitmq
     volumes:
       - ../..:/workspaces:cached
+      - shell-history:/dc/shellhistory
     command: sleep infinity
-    network_mode: service:db
+    networks:
+      - gate-network
+    depends_on:
+      - db
+      - rabbitmq
 
   db:
     container_name: postgres-cartumio-gate
@@ -24,3 +36,24 @@ services:
       - postgres-gate-data:/var/lib/postgresql
     env_file:
       - .env
+    networks:
+      - gate-network
+    ports:
+      - "5432:5432"
+
+  rabbitmq:
+    container_name: rabbitmq-cartumio-gate
+    image: rabbitmq:3-management-alpine
+    restart: unless-stopped
+    volumes:
+      - rabbitmq-gate-data:/var/lib/rabbitmq
+    env_file:
+      - .env
+    environment:
+      RABBITMQ_DEFAULT_USER: ${RABBITMQ_USERNAME}
+      RABBITMQ_DEFAULT_PASS: ${RABBITMQ_PASSWORD}
+    networks:
+      - gate-network
+    ports:
+      - "5672:5672"
+      - "15672:15672"

@@ -20,17 +20,17 @@ import lombok.extern.slf4j.Slf4j;
 public class ConfirmationEmailService {
 
     private final BrevoProperties properties;
-    private final EmailService emailSenderService;
+    private final EmailProducer emailProducer;
     private final EmailTemplateService emailTemplateService;
     private final TokenService tokenService;
 
     @Value("${origin.base-url:http://localhost:3000}")
     private String originBaseUrl;
 
-    public ConfirmationEmailService(BrevoProperties properties, EmailService emailSenderService,
+    public ConfirmationEmailService(BrevoProperties properties, EmailProducer emailProducer,
             EmailTemplateService emailTemplateService, TokenService tokenService) {
         this.properties = properties;
-        this.emailSenderService = emailSenderService;
+        this.emailProducer = emailProducer;
         this.emailTemplateService = emailTemplateService;
         this.tokenService = tokenService;
     }
@@ -59,7 +59,7 @@ public class ConfirmationEmailService {
                 .addData("url", confirmationUrl);
 
         log.debug("Confirmation email request built | subject={}, to={}", emailTemplate.getSubject(), email);
-        emailSenderService.processEmail(request);
-        log.info("Confirmation email sent successfully | email={}", email);
+        emailProducer.sendEmail(request);
+        log.info("Confirmation email sent to queue successfully | email={}", email);
     }
 }

@@ -83,7 +83,7 @@ class WaitlistUserServiceTest {
                 eq(FIRST_NAME),
                 eq(LAST_NAME),
                 eq(EMAIL),
-                eq(LANGUAGE));
+                eq(LOCALE_CODE));
     }
 
     @Test
@@ -178,6 +178,6 @@ class WaitlistUserServiceTest {
                 eq(FIRST_NAME),
                 eq(LAST_NAME),
                 eq(EMAIL),
-                eq(LANGUAGE));
+                eq(LOCALE_CODE));
     }
 }
