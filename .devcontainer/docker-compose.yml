@@ -22,6 +22,8 @@ services:
       - ../..:/workspaces:cached
       - shell-history:/dc/shellhistory
     command: sleep infinity
+    ports:
+      - "8080:8080"
     networks:
       - gate-network
     depends_on:

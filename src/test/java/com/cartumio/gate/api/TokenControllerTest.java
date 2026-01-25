@@ -44,8 +44,8 @@ class TokenControllerTest {
     @Test
     @DisplayName("Should verify token successfully and return valid response")
     void testVerifyTokenSuccessfully() {
-        TokenService.TokenValidationResult validationResult = 
-                new TokenService.TokenValidationResult(true, false, false);
+        TokenVerificationResponse validationResult = 
+                new TokenVerificationResponse(true, false, false);
         
         when(tokenService.validateTokenWithDetails(tokenValue, tokenType))
                 .thenReturn(validationResult);
@@ -65,8 +65,8 @@ class TokenControllerTest {
     @Test
     @DisplayName("Should return invalid response when token is expired")
     void testVerifyTokenExpired() {
-        TokenService.TokenValidationResult validationResult = 
-                new TokenService.TokenValidationResult(false, true, false);
+        TokenVerificationResponse validationResult = 
+                new TokenVerificationResponse(false, true, false);
         
         when(tokenService.validateTokenWithDetails(tokenValue, tokenType))
                 .thenReturn(validationResult);
@@ -86,8 +86,8 @@ class TokenControllerTest {
     @Test
     @DisplayName("Should return invalid response when token is consumed")
     void testVerifyTokenConsumed() {
-        TokenService.TokenValidationResult validationResult = 
-                new TokenService.TokenValidationResult(false, false, true);
+        TokenVerificationResponse validationResult = 
+                new TokenVerificationResponse(false, false, true);
         
         when(tokenService.validateTokenWithDetails(tokenValue, tokenType))
                 .thenReturn(validationResult);
@@ -107,8 +107,8 @@ class TokenControllerTest {
     @Test
     @DisplayName("Should return invalid response when token not found")
     void testVerifyTokenNotFound() {
-        TokenService.TokenValidationResult validationResult = 
-                new TokenService.TokenValidationResult(false, false, false);
+        TokenVerificationResponse validationResult = 
+                new TokenVerificationResponse(false, false, false);
         
         when(tokenService.validateTokenWithDetails(tokenValue, tokenType))
                 .thenReturn(validationResult);

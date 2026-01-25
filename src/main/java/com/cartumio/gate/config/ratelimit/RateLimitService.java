@@ -21,22 +21,32 @@ public class RateLimitService {
     }
 
     public Bucket resolveBucket(String ip, String path) {
-        RateLimitProperties.Rule rule = properties.getRules().stream()
-            .filter(r -> path.matches(r.getPath()))
-            .findFirst()
-            .orElse(properties.getDefaultRule());
+        RateLimitProperties.Rule rule;
+
+        if (properties.getRules() == null || properties.getRules().isEmpty()) {
+            rule = properties.getDefaultRule();
+        } else {
+            rule = properties.getRules().stream()
+                .filter(r -> path.matches(r.getPath()))
+                .findFirst()
+                .orElse(properties.getDefaultRule());
+        }
+        
+        if (rule == null) {
+            throw new IllegalStateException("Rate limit rule not found and default rule is not configured");
+        }
         
         Bandwidth bandwidth = Bandwidth.builder()
             .capacity(rule.getCapacity())
             .refillIntervally(rule.getCapacity(), rule.getRefill())
             .build();
         
-        String key = ip + ":" + rule.getPath();
+        String key = ip + ":" + path;
         return buckets.computeIfAbsent(key, k -> {
             log.info(
                 "Creating RateLimit bucket | ip={}, path={}, capacity={}, refill={}",
                 ip,
-                rule.getPath(),
+                path,
                 rule.getCapacity(),
                 rule.getRefill()
             );

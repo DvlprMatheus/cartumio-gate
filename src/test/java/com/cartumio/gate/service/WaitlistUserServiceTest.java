@@ -9,6 +9,8 @@ import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import java.util.HashMap;
+import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -18,9 +20,11 @@ import org.junit.jupiter.api.Test;
 
 import com.cartumio.gate.domain.SystemLocale;
 import com.cartumio.gate.domain.WaitlistUser;
+import com.cartumio.gate.domain.token.TokenType;
 import com.cartumio.gate.dto.request.WaitlistUserRequest;
 import com.cartumio.gate.repository.WaitlistUserRepository;
 import com.cartumio.gate.service.email.ConfirmationEmailService;
+import com.cartumio.gate.service.token.TokenService;
 
 import jakarta.persistence.EntityExistsException;
 import jakarta.persistence.EntityNotFoundException;
@@ -32,6 +36,7 @@ class WaitlistUserServiceTest {
     private WaitlistUserRepository waitlistUserRepository;
     private ConfirmationEmailService confirmationEmailService;
     private SystemLocaleService systemLocaleService;
+    private TokenService tokenService;
     private WaitlistUserRequest request;
     private SystemLocale systemLocale;
 
@@ -40,16 +45,19 @@ class WaitlistUserServiceTest {
     private static final String FIRST_NAME = "John";
     private static final String LAST_NAME = "Doe";
     private static final String LANGUAGE = "pt";
+    private static final String TOKEN = "test-token-123";
 
     @BeforeEach
     void setUp() {
         waitlistUserRepository = mock(WaitlistUserRepository.class);
         confirmationEmailService = mock(ConfirmationEmailService.class);
         systemLocaleService = mock(SystemLocaleService.class);
+        tokenService = mock(TokenService.class);
         waitlistUserService = new WaitlistUserService(
                 waitlistUserRepository,
                 confirmationEmailService,
-                systemLocaleService);
+                systemLocaleService,
+                tokenService);
 
         request = mock(WaitlistUserRequest.class);
         when(request.email()).thenReturn(EMAIL);
@@ -104,52 +112,116 @@ class WaitlistUserServiceTest {
     @Test
     @DisplayName("Should confirm waitlist user successfully")
     void testConfirmWaitlistUserSuccessfully() {
+        Map<String, Object> metadata = new HashMap<>();
+        metadata.put("email", EMAIL);
+        
         WaitlistUser waitlistUser = new WaitlistUser();
         waitlistUser.setEmail(EMAIL);
         waitlistUser.setConfirmed(false);
+        
+        when(tokenService.validateToken(TOKEN, TokenType.EMAIL_CONFIRMATION)).thenReturn(true);
+        when(tokenService.getMetadataFromToken(TOKEN, TokenType.EMAIL_CONFIRMATION)).thenReturn(metadata);
+        when(tokenService.getEmailFromMetadata(metadata)).thenReturn(EMAIL);
         when(waitlistUserRepository.findByEmail(EMAIL)).thenReturn(Optional.of(waitlistUser));
         when(waitlistUserRepository.save(any(WaitlistUser.class))).thenAnswer(invocation -> {
             WaitlistUser user = invocation.getArgument(0);
             return user;
         });
 
-        waitlistUserService.confirmWaitlistUser(EMAIL);
+        waitlistUserService.confirmWaitlistUser(TOKEN);
 
+        verify(tokenService).validateToken(TOKEN, TokenType.EMAIL_CONFIRMATION);
+        verify(tokenService).getMetadataFromToken(TOKEN, TokenType.EMAIL_CONFIRMATION);
+        verify(tokenService).getEmailFromMetadata(metadata);
         verify(waitlistUserRepository).findByEmail(EMAIL);
         verify(waitlistUserRepository).save(any(WaitlistUser.class));
+        verify(tokenService).invalidateToken(TOKEN);
     }
 
     @Test
     @DisplayName("Should set isConfirmed to true when confirming waitlist user")
     void testConfirmWaitlistUserSetsConfirmedToTrue() {
+        Map<String, Object> metadata = new HashMap<>();
+        metadata.put("email", EMAIL);
+        
         WaitlistUser waitlistUser = new WaitlistUser();
         waitlistUser.setEmail(EMAIL);
         waitlistUser.setFirstName(FIRST_NAME);
         waitlistUser.setLastName(LAST_NAME);
         waitlistUser.setConfirmed(false);
+        
+        when(tokenService.validateToken(TOKEN, TokenType.EMAIL_CONFIRMATION)).thenReturn(true);
+        when(tokenService.getMetadataFromToken(TOKEN, TokenType.EMAIL_CONFIRMATION)).thenReturn(metadata);
+        when(tokenService.getEmailFromMetadata(metadata)).thenReturn(EMAIL);
         when(waitlistUserRepository.findByEmail(EMAIL)).thenReturn(Optional.of(waitlistUser));
         when(waitlistUserRepository.save(any(WaitlistUser.class))).thenAnswer(invocation -> {
             WaitlistUser user = invocation.getArgument(0);
             return user;
         });
 
-        waitlistUserService.confirmWaitlistUser(EMAIL);
+        waitlistUserService.confirmWaitlistUser(TOKEN);
 
+        verify(tokenService).validateToken(TOKEN, TokenType.EMAIL_CONFIRMATION);
         verify(waitlistUserRepository).findByEmail(EMAIL);
         verify(waitlistUserRepository).save(any(WaitlistUser.class));
+        verify(tokenService).invalidateToken(TOKEN);
         assert waitlistUser.isConfirmed() : "Waitlist user should be confirmed";
+    }
+
+    @Test
+    @DisplayName("Should throw IllegalArgumentException when token is invalid")
+    void testConfirmWaitlistUserInvalidToken() {
+        when(tokenService.validateToken(TOKEN, TokenType.EMAIL_CONFIRMATION)).thenReturn(false);
+
+        assertThrows(IllegalArgumentException.class,
+                () -> waitlistUserService.confirmWaitlistUser(TOKEN));
+
+        verify(tokenService).validateToken(TOKEN, TokenType.EMAIL_CONFIRMATION);
+        verify(waitlistUserRepository, never()).findByEmail(anyString());
+        verify(waitlistUserRepository, never()).save(any(WaitlistUser.class));
+        verify(tokenService, never()).invalidateToken(anyString());
+    }
+
+    @Test
+    @DisplayName("Should throw IllegalArgumentException when email not found in metadata")
+    void testConfirmWaitlistUserEmailNotFoundInMetadata() {
+        Map<String, Object> metadata = new HashMap<>();
+        
+        when(tokenService.validateToken(TOKEN, TokenType.EMAIL_CONFIRMATION)).thenReturn(true);
+        when(tokenService.getMetadataFromToken(TOKEN, TokenType.EMAIL_CONFIRMATION)).thenReturn(metadata);
+        when(tokenService.getEmailFromMetadata(metadata)).thenThrow(new IllegalArgumentException("Email not found in metadata"));
+
+        assertThrows(IllegalArgumentException.class,
+                () -> waitlistUserService.confirmWaitlistUser(TOKEN));
+
+        verify(tokenService).validateToken(TOKEN, TokenType.EMAIL_CONFIRMATION);
+        verify(tokenService).getMetadataFromToken(TOKEN, TokenType.EMAIL_CONFIRMATION);
+        verify(tokenService).getEmailFromMetadata(metadata);
+        verify(waitlistUserRepository, never()).findByEmail(anyString());
+        verify(waitlistUserRepository, never()).save(any(WaitlistUser.class));
+        verify(tokenService, never()).invalidateToken(anyString());
     }
 
     @Test
     @DisplayName("Should throw EntityNotFoundException when waitlist user not found for confirmation")
     void testConfirmWaitlistUserNotFound() {
+        Map<String, Object> metadata = new HashMap<>();
+        metadata.put("email", EMAIL);
+        
+        when(tokenService.validateToken(TOKEN, TokenType.EMAIL_CONFIRMATION)).thenReturn(true);
+        when(tokenService.getMetadataFromToken(TOKEN, TokenType.EMAIL_CONFIRMATION)).thenReturn(metadata);
+        when(tokenService.getEmailFromMetadata(metadata)).thenReturn(EMAIL);
         when(waitlistUserRepository.findByEmail(EMAIL)).thenReturn(Optional.empty());
 
         assertThrows(EntityNotFoundException.class,
-                () -> waitlistUserService.confirmWaitlistUser(EMAIL));
+                () -> waitlistUserService.confirmWaitlistUser(TOKEN));
 
+        verify(tokenService).validateToken(TOKEN, TokenType.EMAIL_CONFIRMATION);
+        verify(tokenService).getMetadataFromToken(TOKEN, TokenType.EMAIL_CONFIRMATION);
+        verify(tokenService).getEmailFromMetadata(metadata);
         verify(waitlistUserRepository).findByEmail(EMAIL);
         verify(waitlistUserRepository, never()).save(any(WaitlistUser.class));
+        verify(tokenService, never()).invalidateToken(anyString());
     }
 
     @Test

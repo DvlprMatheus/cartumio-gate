@@ -29,13 +29,8 @@ public class TokenController {
             @Valid @RequestBody TokenVerificationRequest request) {
         log.info("Token verification requested | tokenType={}", request.tokenType());
 
-        TokenService.TokenValidationResult result = tokenService.validateTokenWithDetails(
+        TokenVerificationResponse response = tokenService.validateTokenWithDetails(
                 request.token(), request.tokenType());
-
-        TokenVerificationResponse response = new TokenVerificationResponse(
-                result.isValid(),
-                result.isExpired(),
-                result.isConsumed());
 
         return ResponseEntity.ok(response);
     }

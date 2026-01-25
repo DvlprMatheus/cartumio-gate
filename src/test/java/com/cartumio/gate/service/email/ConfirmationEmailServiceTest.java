@@ -1,6 +1,7 @@
 package com.cartumio.gate.service.email;
 
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -71,7 +72,7 @@ class ConfirmationEmailServiceTest {
                 .thenReturn(emailTemplate);
 
         TokenResponse tokenResponse = new TokenResponse(TOKEN_VALUE, Instant.now().plusSeconds(86400), TokenType.EMAIL_CONFIRMATION);
-        when(tokenService.generateToken(TokenType.EMAIL_CONFIRMATION)).thenReturn(tokenResponse);
+        when(tokenService.generateToken(TokenType.EMAIL_CONFIRMATION, EMAIL)).thenReturn(tokenResponse);
     }
 
     @Test
@@ -80,7 +81,7 @@ class ConfirmationEmailServiceTest {
         confirmationEmailService.sendConfirmationEmail(FIRST_NAME, LAST_NAME, EMAIL, LANGUAGE);
 
         verify(emailTemplateService).findActiveByCodeAndLanguage(TEMPLATE_CODE, LANGUAGE);
-        verify(tokenService).generateToken(TokenType.EMAIL_CONFIRMATION);
+        verify(tokenService).generateToken(TokenType.EMAIL_CONFIRMATION, EMAIL);
         verify(emailProducer).sendEmail(any(Email.class));
     }
 
@@ -90,7 +91,7 @@ class ConfirmationEmailServiceTest {
         confirmationEmailService.sendConfirmationEmail(FIRST_NAME, LAST_NAME, EMAIL, LANGUAGE);
 
         verify(emailTemplateService).findActiveByCodeAndLanguage(TEMPLATE_CODE, LANGUAGE);
-        verify(tokenService).generateToken(TokenType.EMAIL_CONFIRMATION);
+        verify(tokenService).generateToken(TokenType.EMAIL_CONFIRMATION, EMAIL);
         verify(emailProducer).sendEmail(any(Email.class));
     }
 
@@ -100,7 +101,7 @@ class ConfirmationEmailServiceTest {
         confirmationEmailService.sendConfirmationEmail(FIRST_NAME, LAST_NAME, EMAIL, LANGUAGE);
 
         verify(emailTemplateService).findActiveByCodeAndLanguage(TEMPLATE_CODE, LANGUAGE);
-        verify(tokenService).generateToken(TokenType.EMAIL_CONFIRMATION);
+        verify(tokenService).generateToken(TokenType.EMAIL_CONFIRMATION, EMAIL);
         verify(emailProducer).sendEmail(any(Email.class));
     }
 
@@ -110,7 +111,15 @@ class ConfirmationEmailServiceTest {
         confirmationEmailService.sendConfirmationEmail(FIRST_NAME, LAST_NAME, EMAIL, LANGUAGE);
 
         verify(emailTemplateService).findActiveByCodeAndLanguage(TEMPLATE_CODE, LANGUAGE);
-        verify(tokenService).generateToken(TokenType.EMAIL_CONFIRMATION);
+        verify(tokenService).generateToken(TokenType.EMAIL_CONFIRMATION, EMAIL);
         verify(emailProducer).sendEmail(any(Email.class));
+    }
+
+    @Test
+    @DisplayName("Should pass email to token service when generating token")
+    void testSendConfirmationEmailPassesEmailToTokenService() {
+        confirmationEmailService.sendConfirmationEmail(FIRST_NAME, LAST_NAME, EMAIL, LANGUAGE);
+
+        verify(tokenService).generateToken(eq(TokenType.EMAIL_CONFIRMATION), eq(EMAIL));
     }
 }

@@ -2,6 +2,8 @@ package com.cartumio.gate.service.token;
 
 import java.time.Duration;
 import java.time.Instant;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -11,6 +13,7 @@ import org.springframework.transaction.annotation.Transactional;
 import com.cartumio.gate.domain.token.Token;
 import com.cartumio.gate.domain.token.TokenType;
 import com.cartumio.gate.dto.response.token.TokenResponse;
+import com.cartumio.gate.dto.response.token.TokenVerificationResponse;
 import com.cartumio.gate.repository.TokenRepository;
 
 import lombok.AllArgsConstructor;
@@ -26,7 +29,7 @@ public class TokenService {
     private static final Duration DEFAULT_EXPIRATION = Duration.ofHours(24);
 
     @Transactional
-    public Token generateToken(TokenType tokenType, Duration expiration) {
+    public Token generateToken(TokenType tokenType, Duration expiration, Map<String, Object> metadata) {
         String tokenValue = UUID.randomUUID().toString();
 
         while (tokenRepository.existsByToken(tokenValue)) {
@@ -40,16 +43,37 @@ public class TokenService {
         token.setTokenType(tokenType);
         token.setExpiresAt(expiresAt);
         token.setConsumed(false);
+        if (metadata != null) {
+            token.setMetadata(new HashMap<>(metadata));
+        }
 
         Token savedToken = tokenRepository.save(token);
-        log.info("Token generated | tokenType={}, expiresAt={}", tokenType, expiresAt);
+        log.info("Token generated | tokenType={}, expiresAt={}, hasMetadata={}", 
+                tokenType, expiresAt, metadata != null && !metadata.isEmpty());
 
         return savedToken;
     }
 
     @Transactional
+    public Token generateToken(TokenType tokenType, Duration expiration) {
+        return generateToken(tokenType, expiration, null);
+    }
+
+    @Transactional
     public TokenResponse generateToken(TokenType tokenType) {
-        return new TokenResponse(generateToken(tokenType, DEFAULT_EXPIRATION));
+        return new TokenResponse(generateToken(tokenType, DEFAULT_EXPIRATION, null));
+    }
+
+    @Transactional
+    public TokenResponse generateToken(TokenType tokenType, Map<String, Object> metadata) {
+        return new TokenResponse(generateToken(tokenType, DEFAULT_EXPIRATION, metadata));
+    }
+
+    @Transactional
+    public TokenResponse generateToken(TokenType tokenType, String email) {
+        Map<String, Object> metadata = new HashMap<>();
+        metadata.put("email", email);
+        return new TokenResponse(generateToken(tokenType, DEFAULT_EXPIRATION, metadata));
     }
 
     public boolean validateToken(String token, TokenType type) {
@@ -67,12 +91,12 @@ public class TokenService {
         return isValid;
     }
 
-    public TokenValidationResult validateTokenWithDetails(String token, TokenType type) {
+    public TokenVerificationResponse validateTokenWithDetails(String token, TokenType type) {
         Optional<Token> tokenOpt = tokenRepository.findByTokenAndTokenType(token, type);
 
         if (tokenOpt.isEmpty()) {
             log.debug("Token not found | token={}, type={}", token, type);
-            return new TokenValidationResult(false, false, false);
+            return new TokenVerificationResponse(false, false, false);
         }
 
         Token foundToken = tokenOpt.get();
@@ -83,31 +107,7 @@ public class TokenService {
         log.debug("Token validation details | token={}, type={}, valid={}, expired={}, consumed={}",
                 token, type, valid, expired, consumed);
 
-        return new TokenValidationResult(valid, expired, consumed);
-    }
-
-    public static class TokenValidationResult {
-        private final boolean valid;
-        private final boolean expired;
-        private final boolean consumed;
-
-        public TokenValidationResult(boolean valid, boolean expired, boolean consumed) {
-            this.valid = valid;
-            this.expired = expired;
-            this.consumed = consumed;
-        }
-
-        public boolean isValid() {
-            return valid;
-        }
-
-        public boolean isExpired() {
-            return expired;
-        }
-
-        public boolean isConsumed() {
-            return consumed;
-        }
+        return new TokenVerificationResponse(valid, expired, consumed);
     }
 
     @Transactional
@@ -131,6 +131,49 @@ public class TokenService {
         log.info("Token invalidated | token={}", token);
 
         return true;
+    }
+
+    public Map<String, Object> getMetadataFromToken(String token, TokenType tokenType) {
+        Optional<Token> tokenOpt = tokenRepository.findByTokenAndTokenType(token, tokenType);
+
+        if (tokenOpt.isEmpty()) {
+            log.debug("Token not found | token={}, type={}", token, tokenType);
+            throw new IllegalArgumentException("Token not found");
+        }
+
+        Token foundToken = tokenOpt.get();
+        Map<String, Object> metadata = foundToken.getMetadata();
+        
+        if (metadata == null) {
+            log.debug("Token has no metadata | token={}, type={}", token, tokenType);
+            return new HashMap<>();
+        }
+
+        log.debug("Metadata retrieved from token | token={}, type={}, metadataKeys={}", 
+                token, tokenType, metadata.keySet());
+        return metadata;
+    }
+
+    public String getEmailFromMetadata(Map<String, Object> metadata) {
+        if (metadata == null || metadata.isEmpty()) {
+            log.debug("Metadata is null or empty");
+            throw new IllegalArgumentException("Metadata is null or empty");
+        }
+
+        Object emailObj = metadata.get("email");
+        if (emailObj == null) {
+            log.debug("Email not found in metadata | metadataKeys={}", metadata.keySet());
+            throw new IllegalArgumentException("Email not found in metadata");
+        }
+
+        if (!(emailObj instanceof String)) {
+            log.debug("Email in metadata is not a string | emailType={}", emailObj.getClass().getName());
+            throw new IllegalArgumentException("Email in metadata is not a string");
+        }
+
+        String email = (String) emailObj;
+        log.debug("Email extracted from metadata | email={}", email);
+        return email;
     }
 
     @Transactional

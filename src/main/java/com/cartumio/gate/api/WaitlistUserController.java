@@ -7,10 +7,13 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+import com.cartumio.gate.dto.request.WaitlistUserConfirmationRequest;
 import com.cartumio.gate.dto.request.WaitlistUserRequest;
 import com.cartumio.gate.service.WaitlistUserService;
 
+import jakarta.persistence.EntityNotFoundException;
 import jakarta.servlet.http.HttpServletRequest;
+import jakarta.validation.Valid;
 import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
@@ -29,5 +32,21 @@ public class WaitlistUserController {
         String acceptLanguage = servletRequest.getHeader("Accept-Language");
         waitlistUserService.createWaitlistUser(request, acceptLanguage);
         return ResponseEntity.status(HttpStatus.CREATED).build();
+    }
+
+    @PostMapping("/confirm")
+    public ResponseEntity<Void> confirmWaitlistUser(
+            @Valid @RequestBody WaitlistUserConfirmationRequest request) {
+        log.info("Confirm waitlist user called");
+        try {
+            waitlistUserService.confirmWaitlistUser(request.token());
+            return ResponseEntity.ok().build();
+        } catch (IllegalArgumentException e) {
+            log.error("Invalid token | error={}", e.getMessage());
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).build();
+        } catch (EntityNotFoundException e) {
+            log.error("Waitlist user not found | error={}", e.getMessage());
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).build();
+        }
     }
 }

@@ -1,6 +1,8 @@
 package com.cartumio.gate.domain.token;
 
 import java.time.Instant;
+import java.util.HashMap;
+import java.util.Map;
 
 import com.cartumio.gate.domain.AbstractEntity;
 
@@ -13,6 +15,8 @@ import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
+import org.hibernate.annotations.JdbcTypeCode;
+import org.hibernate.type.SqlTypes;
 
 @Entity
 @Getter
@@ -37,6 +41,10 @@ public class Token extends AbstractEntity {
 
     @Column(name = "is_consumed", nullable = false)
     private boolean isConsumed;
+
+    @JdbcTypeCode(SqlTypes.JSON)
+    @Column(name = "metadata", columnDefinition = "jsonb", nullable = true)
+    private Map<String, Object> metadata = new HashMap<>();
 
     public boolean isExpired() {
         return Instant.now().isAfter(this.expiresAt);

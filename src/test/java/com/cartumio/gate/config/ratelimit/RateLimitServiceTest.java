@@ -2,6 +2,7 @@ package com.cartumio.gate.config.ratelimit;
 
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertSame;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import java.time.Duration;
 import java.util.ArrayList;
@@ -86,15 +87,15 @@ class RateLimitServiceTest {
     }
 
     @Test
-    @DisplayName("Should return same bucket instance for different paths with same IP when using default rule")
-    void testResolveBucketReturnsSameInstanceForDifferentPathWithDefaultRule() {
+    @DisplayName("Should return different bucket instances for different paths with same IP when using default rule")
+    void testResolveBucketReturnsDifferentInstanceForDifferentPathWithDefaultRule() {
         String path1 = "/gate/v1/waitlist-users/create";
         String path2 = "/gate/v1/other-endpoint";
 
         Bucket bucket1 = rateLimitService.resolveBucket(IP, path1);
         Bucket bucket2 = rateLimitService.resolveBucket(IP, path2);
 
-        assertSame(bucket1, bucket2, "Should return same bucket instance when both use default rule");
+        assert bucket1 != bucket2 : "Should return different bucket instances for different paths";
     }
 
     @Test
@@ -132,5 +133,92 @@ class RateLimitServiceTest {
 
         assertNotNull(bucket);
         assert bucket.getAvailableTokens() == 20 : "Bucket should have correct capacity";
+    }
+
+    @Test
+    @DisplayName("Should use default rule when rules is null")
+    void testResolveBucketWithNullRules() {
+        properties.setRules(null);
+
+        Bucket bucket = rateLimitService.resolveBucket(IP, PATH);
+
+        assertNotNull(bucket);
+        assert bucket.getAvailableTokens() == CAPACITY : "Bucket should have default capacity when rules is null";
+    }
+
+    @Test
+    @DisplayName("Should use default rule when rules is empty")
+    void testResolveBucketWithEmptyRules() {
+        properties.setRules(new ArrayList<>());
+
+        Bucket bucket = rateLimitService.resolveBucket(IP, PATH);
+
+        assertNotNull(bucket);
+        assert bucket.getAvailableTokens() == CAPACITY : "Bucket should have default capacity when rules is empty";
+    }
+
+    @Test
+    @DisplayName("Should throw IllegalStateException when default rule is null")
+    void testResolveBucketThrowsExceptionWhenDefaultRuleIsNull() {
+        properties.setDefaultRule(null);
+
+        IllegalStateException exception = assertThrows(
+            IllegalStateException.class,
+            () -> rateLimitService.resolveBucket(IP, PATH)
+        );
+
+        assert exception.getMessage().contains("Rate limit rule not found and default rule is not configured")
+            : "Exception message should indicate default rule is not configured";
+    }
+
+    @Test
+    @DisplayName("Should create bucket with correct capacity when default rule path is null")
+    void testResolveBucketWithNullDefaultRulePath() {
+        RateLimitProperties.Rule defaultRule = new RateLimitProperties.Rule();
+        defaultRule.setPath(null);
+        defaultRule.setCapacity(CAPACITY);
+        defaultRule.setRefill(REFILL);
+        properties.setDefaultRule(defaultRule);
+        properties.setRules(null);
+
+        Bucket bucket = rateLimitService.resolveBucket(IP, PATH);
+
+        assertNotNull(bucket);
+        assert bucket.getAvailableTokens() == CAPACITY : "Bucket should be created even when default rule path is null";
+    }
+
+    @Test
+    @DisplayName("Should use default rule when no rules match and rules list is not empty")
+    void testResolveBucketUsesDefaultRuleWhenNoMatch() {
+        RateLimitProperties.Rule nonMatchingRule = new RateLimitProperties.Rule();
+        nonMatchingRule.setPath("/other/.*");
+        nonMatchingRule.setCapacity(15);
+        nonMatchingRule.setRefill(Duration.ofMinutes(3));
+        properties.getRules().add(nonMatchingRule);
+
+        Bucket bucket = rateLimitService.resolveBucket(IP, PATH);
+
+        assertNotNull(bucket);
+        assert bucket.getAvailableTokens() == CAPACITY : "Bucket should use default rule when no rules match";
+    }
+
+    @Test
+    @DisplayName("Should return different bucket instances for different paths even when using same rule")
+    void testResolveBucketReturnsDifferentInstancesForDifferentPathsWithSameRule() {
+        RateLimitProperties.Rule customRule = new RateLimitProperties.Rule();
+        customRule.setPath("/gate/.*");
+        customRule.setCapacity(20);
+        customRule.setRefill(Duration.ofMinutes(5));
+        properties.getRules().add(customRule);
+
+        String path1 = "/gate/v1/waitlist-users/create";
+        String path2 = "/gate/v1/waitlist-users/confirm";
+
+        Bucket bucket1 = rateLimitService.resolveBucket(IP, path1);
+        Bucket bucket2 = rateLimitService.resolveBucket(IP, path2);
+
+        assert bucket1 != bucket2 : "Should return different bucket instances for different paths even with same rule";
+        assert bucket1.getAvailableTokens() == 20 : "First bucket should have correct capacity";
+        assert bucket2.getAvailableTokens() == 20 : "Second bucket should have correct capacity";
     }
 }

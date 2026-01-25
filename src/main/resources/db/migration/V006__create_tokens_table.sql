@@ -9,6 +9,7 @@ CREATE TABLE tokens (
     expires_at TIMESTAMPTZ NOT NULL,
     consumed_at TIMESTAMPTZ NULL,
     is_consumed BOOLEAN NOT NULL DEFAULT FALSE,
+    metadata JSONB NULL,
     created_at TIMESTAMPTZ NOT NULL,
     updated_at TIMESTAMPTZ NULL
 );
@@ -18,6 +19,7 @@ CREATE INDEX IF NOT EXISTS idx_tokens_token ON tokens (token);
 CREATE INDEX IF NOT EXISTS idx_tokens_token_type ON tokens (token_type);
 CREATE INDEX IF NOT EXISTS idx_tokens_expires_at ON tokens (expires_at);
 CREATE INDEX IF NOT EXISTS idx_tokens_is_consumed ON tokens (is_consumed);
+CREATE INDEX IF NOT EXISTS idx_tokens_metadata_gin ON tokens USING GIN (metadata);
 CREATE INDEX IF NOT EXISTS idx_tokens_created_at ON tokens (created_at);
 CREATE INDEX IF NOT EXISTS idx_tokens_cleanup ON tokens (is_consumed, expires_at);
 
@@ -29,5 +31,6 @@ COMMENT ON COLUMN tokens.token_type IS 'Type of token (EMAIL_CONFIRMATION, PASSW
 COMMENT ON COLUMN tokens.expires_at IS 'Timestamp when the token expires';
 COMMENT ON COLUMN tokens.consumed_at IS 'Timestamp when the token was consumed';
 COMMENT ON COLUMN tokens.is_consumed IS 'Flag to indicate if the token has been consumed';
+COMMENT ON COLUMN tokens.metadata IS 'JSON metadata for token-specific information (e.g., email for EMAIL_CONFIRMATION tokens)';
 COMMENT ON COLUMN tokens.created_at IS 'Timestamp when the token was created';
 COMMENT ON COLUMN tokens.updated_at IS 'Timestamp when the token was updated';
