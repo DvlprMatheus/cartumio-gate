@@ -1,5 +1,6 @@
 package com.cartumio.gate.service;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
@@ -73,18 +74,18 @@ class WaitlistUserServiceTest {
     }
 
     @Test
-    @DisplayName("Should create waitlist user successfully and send confirmation email")
-    void testCreateWaitlistUserSuccessfully() {
-        when(waitlistUserRepository.existsByEmail(EMAIL)).thenReturn(false);
+    @DisplayName("Should create waitlist user and send confirmation email when user does not exist")
+    void testCreateOrResendCreatesUserAndSendsEmail() {
+        when(waitlistUserRepository.findByEmail(EMAIL)).thenReturn(Optional.empty());
         when(systemLocaleService.findActiveByCode(LOCALE_CODE)).thenReturn(systemLocale);
         when(waitlistUserRepository.save(any(WaitlistUser.class))).thenAnswer(invocation -> {
             WaitlistUser user = invocation.getArgument(0);
             return user;
         });
 
-        waitlistUserService.createWaitlistUser(request, LOCALE_CODE);
+        waitlistUserService.createOrResendConfirmationEmail(request, LOCALE_CODE);
 
-        verify(waitlistUserRepository).existsByEmail(EMAIL);
+        verify(waitlistUserRepository).findByEmail(EMAIL);
         verify(systemLocaleService).findActiveByCode(LOCALE_CODE);
         verify(waitlistUserRepository).save(any(WaitlistUser.class));
         verify(confirmationEmailService).sendConfirmationEmail(
@@ -95,18 +96,71 @@ class WaitlistUserServiceTest {
     }
 
     @Test
-    @DisplayName("Should throw EntityExistsException and not send email when waitlist user already exists")
-    void testCreateWaitlistUserAlreadyExists() {
-        when(waitlistUserRepository.existsByEmail(EMAIL)).thenReturn(true);
+    @DisplayName("Should create waitlist user with correct system locale id when user does not exist")
+    void testCreateOrResendCreatesUserWithCorrectLocaleId() {
+        UUID localeId = UUID.randomUUID();
+        systemLocale.setId(localeId);
+        when(waitlistUserRepository.findByEmail(EMAIL)).thenReturn(Optional.empty());
+        when(systemLocaleService.findActiveByCode(LOCALE_CODE)).thenReturn(systemLocale);
+        when(waitlistUserRepository.save(any(WaitlistUser.class))).thenAnswer(invocation -> {
+            WaitlistUser user = invocation.getArgument(0);
+            assertEquals(localeId, user.getSystemLocaleId(), "System locale ID should match");
+            assertEquals(EMAIL, user.getEmail(), "Email should match");
+            assertEquals(FIRST_NAME, user.getFirstName(), "First name should match");
+            assertEquals(LAST_NAME, user.getLastName(), "Last name should match");
+            assertEquals(false, user.isConfirmed(), "User should not be confirmed initially");
+            return user;
+        });
 
-        assertThrows(EntityExistsException.class,
-                () -> waitlistUserService.createWaitlistUser(request, LOCALE_CODE));
+        waitlistUserService.createOrResendConfirmationEmail(request, LOCALE_CODE);
 
-        verify(waitlistUserRepository).existsByEmail(EMAIL);
+        verify(waitlistUserRepository).findByEmail(EMAIL);
+        verify(systemLocaleService).findActiveByCode(LOCALE_CODE);
+        verify(waitlistUserRepository).save(any(WaitlistUser.class));
+        verify(confirmationEmailService).sendConfirmationEmail(
+                eq(FIRST_NAME),
+                eq(LAST_NAME),
+                eq(EMAIL),
+                eq(LOCALE_CODE));
+    }
+
+    @Test
+    @DisplayName("Should resend confirmation email when user exists but is not confirmed")
+    void testCreateOrResendResendsEmailWhenUserExistsAndNotConfirmed() {
+        WaitlistUser existingUser = new WaitlistUser().create(request, systemLocale.getId());
+        existingUser.setConfirmed(false);
+
+        when(waitlistUserRepository.findByEmail(EMAIL)).thenReturn(Optional.of(existingUser));
+        when(systemLocaleService.findActiveByCode(LOCALE_CODE)).thenReturn(systemLocale);
+
+        waitlistUserService.createOrResendConfirmationEmail(request, LOCALE_CODE);
+
+        verify(waitlistUserRepository).findByEmail(EMAIL);
+        verify(systemLocaleService).findActiveByCode(LOCALE_CODE);
+        verify(waitlistUserRepository, never()).save(any(WaitlistUser.class));
+        verify(confirmationEmailService).sendConfirmationEmail(
+                eq(FIRST_NAME),
+                eq(LAST_NAME),
+                eq(EMAIL),
+                eq(LOCALE_CODE));
+    }
+
+    @Test
+    @DisplayName("Should throw EntityExistsException when waitlist user already exists and is confirmed")
+    void testCreateOrResendThrowsWhenUserExistsAndConfirmed() {
+        WaitlistUser confirmedUser = new WaitlistUser().create(request, systemLocale.getId());
+        confirmedUser.setConfirmed(true);
+        when(waitlistUserRepository.findByEmail(EMAIL)).thenReturn(Optional.of(confirmedUser));
+
+        EntityExistsException exception = assertThrows(EntityExistsException.class,
+                () -> waitlistUserService.createOrResendConfirmationEmail(request, LOCALE_CODE));
+
+        verify(waitlistUserRepository).findByEmail(EMAIL);
         verify(waitlistUserRepository, never()).save(any(WaitlistUser.class));
         verify(systemLocaleService, never()).findActiveByCode(anyString());
         verify(confirmationEmailService, never()).sendConfirmationEmail(
                 anyString(), anyString(), anyString(), anyString());
+        assertEquals("Waitlist user already exists and is confirmed", exception.getMessage());
     }
 
     @Test
@@ -139,6 +193,32 @@ class WaitlistUserServiceTest {
     }
 
     @Test
+    @DisplayName("Should not confirm waitlist user if already confirmed")
+    void testConfirmWaitlistUserAlreadyConfirmed() {
+        Map<String, Object> metadata = new HashMap<>();
+        metadata.put("email", EMAIL);
+
+        WaitlistUser waitlistUser = new WaitlistUser();
+        waitlistUser.setEmail(EMAIL);
+        waitlistUser.setConfirmed(true);
+        
+        when(tokenService.validateToken(TOKEN, TokenType.EMAIL_CONFIRMATION)).thenReturn(true);
+        when(tokenService.getMetadataFromToken(TOKEN, TokenType.EMAIL_CONFIRMATION)).thenReturn(metadata);
+        when(tokenService.getEmailFromMetadata(metadata)).thenReturn(EMAIL);
+        when(waitlistUserRepository.findByEmail(EMAIL)).thenReturn(Optional.of(waitlistUser));
+
+        waitlistUserService.confirmWaitlistUser(TOKEN);
+
+        verify(tokenService).validateToken(TOKEN, TokenType.EMAIL_CONFIRMATION);
+        verify(tokenService).getMetadataFromToken(TOKEN, TokenType.EMAIL_CONFIRMATION);
+        verify(tokenService).getEmailFromMetadata(metadata);
+        verify(waitlistUserRepository).findByEmail(EMAIL);
+        verify(waitlistUserRepository, never()).save(any(WaitlistUser.class));
+        verify(tokenService).invalidateToken(TOKEN);
+        assertEquals(true, waitlistUser.isConfirmed(), "Waitlist user already confirmed");
+    }
+
+    @Test
     @DisplayName("Should set isConfirmed to true when confirming waitlist user")
     void testConfirmWaitlistUserSetsConfirmedToTrue() {
         Map<String, Object> metadata = new HashMap<>();
@@ -165,7 +245,7 @@ class WaitlistUserServiceTest {
         verify(waitlistUserRepository).findByEmail(EMAIL);
         verify(waitlistUserRepository).save(any(WaitlistUser.class));
         verify(tokenService).invalidateToken(TOKEN);
-        assert waitlistUser.isConfirmed() : "Waitlist user should be confirmed";
+        assertEquals(true, waitlistUser.isConfirmed(), "Waitlist user should be confirmed");
     }
 
     @Test
@@ -222,34 +302,5 @@ class WaitlistUserServiceTest {
         verify(waitlistUserRepository).findByEmail(EMAIL);
         verify(waitlistUserRepository, never()).save(any(WaitlistUser.class));
         verify(tokenService, never()).invalidateToken(anyString());
-    }
-
-    @Test
-    @DisplayName("Should create waitlist user with correct system locale id")
-    void testCreateWaitlistUserWithSystemLocaleId() {
-        UUID localeId = UUID.randomUUID();
-        systemLocale.setId(localeId);
-        when(waitlistUserRepository.existsByEmail(EMAIL)).thenReturn(false);
-        when(systemLocaleService.findActiveByCode(LOCALE_CODE)).thenReturn(systemLocale);
-        when(waitlistUserRepository.save(any(WaitlistUser.class))).thenAnswer(invocation -> {
-            WaitlistUser user = invocation.getArgument(0);
-            assert user.getSystemLocaleId().equals(localeId) : "System locale ID should match";
-            assert user.getEmail().equals(EMAIL) : "Email should match";
-            assert user.getFirstName().equals(FIRST_NAME) : "First name should match";
-            assert user.getLastName().equals(LAST_NAME) : "Last name should match";
-            assert !user.isConfirmed() : "User should not be confirmed initially";
-            return user;
-        });
-
-        waitlistUserService.createWaitlistUser(request, LOCALE_CODE);
-
-        verify(waitlistUserRepository).existsByEmail(EMAIL);
-        verify(systemLocaleService).findActiveByCode(LOCALE_CODE);
-        verify(waitlistUserRepository).save(any(WaitlistUser.class));
-        verify(confirmationEmailService).sendConfirmationEmail(
-                eq(FIRST_NAME),
-                eq(LAST_NAME),
-                eq(EMAIL),
-                eq(LOCALE_CODE));
     }
 }

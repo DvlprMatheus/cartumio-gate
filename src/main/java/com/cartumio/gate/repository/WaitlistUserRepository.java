@@ -11,7 +11,5 @@ import com.cartumio.gate.domain.WaitlistUser;
 @Repository
 public interface WaitlistUserRepository extends JpaRepository<WaitlistUser, UUID> {
 
-    boolean existsByEmail(String email);
-
     Optional<WaitlistUser> findByEmail(String email);
 }

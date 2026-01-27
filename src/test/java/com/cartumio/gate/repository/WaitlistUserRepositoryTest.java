@@ -47,20 +47,4 @@ class WaitlistUserRepositoryTest {
         waitlistUserRepository.findByEmail(waitlistUser.getEmail());
         verify(waitlistUserRepository).findByEmail(waitlistUser.getEmail());
     }
-
-    @Test
-    @DisplayName("Should return true when waitlist user exists")
-    void testExistsByEmailTrue() {
-        when(waitlistUserRepository.existsByEmail(waitlistUser.getEmail())).thenReturn(true);
-        waitlistUserRepository.existsByEmail(waitlistUser.getEmail());
-        verify(waitlistUserRepository).existsByEmail(waitlistUser.getEmail());
-    }
-    
-    @Test
-    @DisplayName("Should return false when waitlist user does not exist")
-    void testExistsByEmailFalse() {
-        when(waitlistUserRepository.existsByEmail(waitlistUser.getEmail())).thenReturn(false);
-        waitlistUserRepository.existsByEmail(waitlistUser.getEmail());
-        verify(waitlistUserRepository).existsByEmail(waitlistUser.getEmail());
-    }
 }

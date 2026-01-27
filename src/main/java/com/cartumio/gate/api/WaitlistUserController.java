@@ -25,13 +25,13 @@ public class WaitlistUserController {
 
     private final WaitlistUserService waitlistUserService;
 
-    @PostMapping("/create")
-    public ResponseEntity<Void> createWaitlistUser(@RequestBody WaitlistUserRequest request,
+    @PostMapping("/create-or-resend")
+    public ResponseEntity<Void> createOrResendConfirmationEmail(@RequestBody WaitlistUserRequest request,
             HttpServletRequest servletRequest) {
-        log.info("Create waitlist user called");
+        log.info("Create or resend confirmation email called");
         String acceptLanguage = servletRequest.getHeader("Accept-Language");
-        waitlistUserService.createWaitlistUser(request, acceptLanguage);
-        return ResponseEntity.status(HttpStatus.CREATED).build();
+        waitlistUserService.createOrResendConfirmationEmail(request, acceptLanguage);
+        return ResponseEntity.ok().build();
     }
 
     @PostMapping("/confirm")

@@ -3,6 +3,7 @@ package com.cartumio.gate.service;
 import org.springframework.stereotype.Service;
 
 import java.util.Map;
+import java.util.Optional;
 
 import com.cartumio.gate.domain.SystemLocale;
 import com.cartumio.gate.domain.WaitlistUser;
@@ -29,48 +30,65 @@ public class WaitlistUserService {
     private final TokenService tokenService;
 
     @Transactional
-    public void createWaitlistUser(WaitlistUserRequest request, String acceptLanguage) {
-        log.info("Creating new waitlist user | email={}, acceptLanguage={}", request.email(), acceptLanguage);
-        if (waitlistUserRepository.existsByEmail(request.email())) {
-            log.error("Waitlist user already exists | email={}", request.email());
-            throw new EntityExistsException("Waitlist user already exists");
+    public void createOrResendConfirmationEmail(WaitlistUserRequest request, String acceptLanguage) {
+        log.info("Creating or resending confirmation email | email={}", request.email());
+        Optional<WaitlistUser> existing = this.waitlistUserRepository.findByEmail(request.email());
+        boolean isResend = existing.isPresent();
+
+        if (isResend && existing.get().isConfirmed()) {
+            log.warn("Waitlist user already exists and is confirmed | email={}", request.email());
+            throw new EntityExistsException("Waitlist user already exists and is confirmed");
         }
 
         SystemLocale systemLocale = systemLocaleService.findActiveByCode(getLocaleCode(acceptLanguage));
         log.info("System locale found | code={}, language={}", systemLocale.getCode(), systemLocale.getLanguage());
 
-        WaitlistUser waitlistUser = new WaitlistUser().create(request, systemLocale.getId());
-        waitlistUserRepository.save(waitlistUser);
-        log.info("Waitlist user created successfully | email={}", request.email());
+        WaitlistUser waitlistUser = existing.orElseGet(() -> createWaitlistUser(request, systemLocale));
+
+        if (isResend) {
+            log.info("Resending confirmation email to existing user | email={}", request.email());
+        }
 
         confirmationEmailService.sendConfirmationEmail(waitlistUser.getFirstName(), waitlistUser.getLastName(),
                 waitlistUser.getEmail(), systemLocale.getCode());
     }
 
+    private WaitlistUser createWaitlistUser(WaitlistUserRequest request, SystemLocale systemLocale) {
+        log.info("Creating new waitlist user | email={}, language={}", request.email(), systemLocale.getLanguage());
+        WaitlistUser waitlistUser = this.waitlistUserRepository
+                .save(new WaitlistUser().create(request, systemLocale.getId()));
+        log.info("Waitlist user created successfully | email={}", waitlistUser.getEmail());
+        return waitlistUser;
+    }
+
     @Transactional
     public void confirmWaitlistUser(String token) {
         log.info("Confirming waitlist user | token={}", token);
-        
+
         if (!tokenService.validateToken(token, TokenType.EMAIL_CONFIRMATION)) {
             log.error("Invalid token | token={}", token);
             throw new IllegalArgumentException("Invalid or expired token");
         }
-        
+
         Map<String, Object> metadata = tokenService.getMetadataFromToken(token, TokenType.EMAIL_CONFIRMATION);
-        
+
         String email = tokenService.getEmailFromMetadata(metadata);
         log.info("Email extracted from token metadata | email={}", email);
-        
+
         WaitlistUser waitlistUser = waitlistUserRepository.findByEmail(email)
                 .orElseThrow(() -> {
                     log.error("Waitlist user not found | email={}", email);
                     return new EntityNotFoundException("Waitlist user not found");
                 });
-                
-        waitlistUser.confirm();
-        waitlistUserRepository.save(waitlistUser);
-        log.info("Waitlist user confirmed successfully | email={}", email);
-        
+
+        if (!waitlistUser.isConfirmed()) {
+            waitlistUser.confirm();
+            waitlistUserRepository.save(waitlistUser);
+            log.info("Waitlist user confirmed successfully | email={}", email);
+        } else {
+            log.info("Waitlist user already confirmed | email={}", email);
+        }
+
         tokenService.invalidateToken(token);
         log.info("Token invalidated after confirmation | token={}", token);
     }

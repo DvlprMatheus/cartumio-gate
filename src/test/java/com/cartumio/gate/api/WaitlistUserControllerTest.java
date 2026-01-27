@@ -1,5 +1,7 @@
 package com.cartumio.gate.api;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doThrow;
@@ -17,6 +19,7 @@ import com.cartumio.gate.dto.request.WaitlistUserConfirmationRequest;
 import com.cartumio.gate.dto.request.WaitlistUserRequest;
 import com.cartumio.gate.service.WaitlistUserService;
 
+import jakarta.persistence.EntityExistsException;
 import jakarta.persistence.EntityNotFoundException;
 import jakarta.servlet.http.HttpServletRequest;
 
@@ -43,35 +46,49 @@ class WaitlistUserControllerTest {
     }
 
     @Test
-    @DisplayName("Should create waitlist user successfully and return 201 CREATED")
-    void testCreateWaitlistUserSuccessfully() {
+    @DisplayName("Should create or resend confirmation email successfully and return 200 OK")
+    void testCreateOrResendConfirmationEmailSuccessfully() {
         when(servletRequest.getHeader("Accept-Language")).thenReturn(ACCEPT_LANGUAGE);
 
-        ResponseEntity<Void> response = waitlistUserController.createWaitlistUser(request, servletRequest);
+        ResponseEntity<Void> response = waitlistUserController.createOrResendConfirmationEmail(request, servletRequest);
 
-        verify(waitlistUserService).createWaitlistUser(any(WaitlistUserRequest.class), eq(ACCEPT_LANGUAGE));
-        assert response.getStatusCode() == HttpStatus.CREATED : "Status should be CREATED";
+        verify(waitlistUserService).createOrResendConfirmationEmail(any(WaitlistUserRequest.class), eq(ACCEPT_LANGUAGE));
+        assert response.getStatusCode() == HttpStatus.OK : "Status should be OK";
     }
 
     @Test
     @DisplayName("Should handle null Accept-Language header")
-    void testCreateWaitlistUserWithNullAcceptLanguage() {
+    void testCreateOrResendWithNullAcceptLanguage() {
         when(servletRequest.getHeader("Accept-Language")).thenReturn(null);
 
-        ResponseEntity<Void> response = waitlistUserController.createWaitlistUser(request, servletRequest);
+        ResponseEntity<Void> response = waitlistUserController.createOrResendConfirmationEmail(request, servletRequest);
 
-        verify(waitlistUserService).createWaitlistUser(any(WaitlistUserRequest.class), eq(null));
-        assert response.getStatusCode() == HttpStatus.CREATED : "Status should be CREATED";
+        verify(waitlistUserService).createOrResendConfirmationEmail(any(WaitlistUserRequest.class), eq(null));
+        assert response.getStatusCode() == HttpStatus.OK : "Status should be OK";
     }
 
     @Test
-    @DisplayName("Should call service with correct request and locale")
-    void testCreateWaitlistUserCallsServiceWithCorrectParameters() {
+    @DisplayName("Should call service with correct request and accept-language")
+    void testCreateOrResendCallsServiceWithCorrectParameters() {
         when(servletRequest.getHeader("Accept-Language")).thenReturn(ACCEPT_LANGUAGE);
 
-        waitlistUserController.createWaitlistUser(request, servletRequest);
+        waitlistUserController.createOrResendConfirmationEmail(request, servletRequest);
 
-        verify(waitlistUserService).createWaitlistUser(request, ACCEPT_LANGUAGE);
+        verify(waitlistUserService).createOrResendConfirmationEmail(request, ACCEPT_LANGUAGE);
+    }
+
+    @Test
+    @DisplayName("Should propagate EntityExistsException when user already exists and is confirmed")
+    void testCreateOrResendThrowsWhenUserExistsAndConfirmed() {
+        when(servletRequest.getHeader("Accept-Language")).thenReturn(ACCEPT_LANGUAGE);
+        doThrow(new EntityExistsException("Waitlist user already exists and is confirmed"))
+                .when(waitlistUserService).createOrResendConfirmationEmail(request, ACCEPT_LANGUAGE);
+
+        EntityExistsException exception = assertThrows(EntityExistsException.class,
+                () -> waitlistUserController.createOrResendConfirmationEmail(request, servletRequest));
+
+        verify(waitlistUserService).createOrResendConfirmationEmail(request, ACCEPT_LANGUAGE);
+        assertEquals("Waitlist user already exists and is confirmed", exception.getMessage());
     }
 
     @Test
