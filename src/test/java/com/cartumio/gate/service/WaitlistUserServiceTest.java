@@ -303,4 +303,130 @@ class WaitlistUserServiceTest {
         verify(waitlistUserRepository, never()).save(any(WaitlistUser.class));
         verify(tokenService, never()).invalidateToken(anyString());
     }
+
+    @Test
+    @DisplayName("Should use pt-BR locale when acceptLanguage is null")
+    void testGetLocaleCodeWithNullAcceptLanguage() {
+        SystemLocale ptLocale = new SystemLocale();
+        ptLocale.setId(UUID.randomUUID());
+        ptLocale.setCode("pt-BR");
+        ptLocale.setLanguage("pt");
+        ptLocale.setCountry("BR");
+        ptLocale.setActive(true);
+
+        when(waitlistUserRepository.findByEmail(EMAIL)).thenReturn(Optional.empty());
+        when(systemLocaleService.findActiveByCode("pt-BR")).thenReturn(ptLocale);
+        when(waitlistUserRepository.save(any(WaitlistUser.class))).thenAnswer(invocation -> invocation.getArgument(0));
+
+        waitlistUserService.createOrResendConfirmationEmail(request, null);
+
+        verify(systemLocaleService).findActiveByCode("pt-BR");
+        verify(confirmationEmailService).sendConfirmationEmail(
+                eq(FIRST_NAME), eq(LAST_NAME), eq(EMAIL), eq("pt-BR"));
+    }
+
+    @Test
+    @DisplayName("Should use pt-BR locale when acceptLanguage is empty")
+    void testGetLocaleCodeWithEmptyAcceptLanguage() {
+        SystemLocale ptLocale = new SystemLocale();
+        ptLocale.setId(UUID.randomUUID());
+        ptLocale.setCode("pt-BR");
+        ptLocale.setLanguage("pt");
+        ptLocale.setCountry("BR");
+        ptLocale.setActive(true);
+
+        when(waitlistUserRepository.findByEmail(EMAIL)).thenReturn(Optional.empty());
+        when(systemLocaleService.findActiveByCode("pt-BR")).thenReturn(ptLocale);
+        when(waitlistUserRepository.save(any(WaitlistUser.class))).thenAnswer(invocation -> invocation.getArgument(0));
+
+        waitlistUserService.createOrResendConfirmationEmail(request, "");
+
+        verify(systemLocaleService).findActiveByCode("pt-BR");
+        verify(confirmationEmailService).sendConfirmationEmail(
+                eq(FIRST_NAME), eq(LAST_NAME), eq(EMAIL), eq("pt-BR"));
+    }
+
+    @Test
+    @DisplayName("Should use pt-BR locale when acceptLanguage starts with 'pt'")
+    void testGetLocaleCodeWithPortugueseAcceptLanguage() {
+        SystemLocale ptLocale = new SystemLocale();
+        ptLocale.setId(UUID.randomUUID());
+        ptLocale.setCode("pt-BR");
+        ptLocale.setLanguage("pt");
+        ptLocale.setCountry("BR");
+        ptLocale.setActive(true);
+
+        when(waitlistUserRepository.findByEmail(EMAIL)).thenReturn(Optional.empty());
+        when(systemLocaleService.findActiveByCode("pt-BR")).thenReturn(ptLocale);
+        when(waitlistUserRepository.save(any(WaitlistUser.class))).thenAnswer(invocation -> invocation.getArgument(0));
+
+        waitlistUserService.createOrResendConfirmationEmail(request, "pt-BR");
+
+        verify(systemLocaleService).findActiveByCode("pt-BR");
+        verify(confirmationEmailService).sendConfirmationEmail(
+                eq(FIRST_NAME), eq(LAST_NAME), eq(EMAIL), eq("pt-BR"));
+    }
+
+    @Test
+    @DisplayName("Should use en-US locale when acceptLanguage does not start with 'pt'")
+    void testGetLocaleCodeWithEnglishAcceptLanguage() {
+        SystemLocale enLocale = new SystemLocale();
+        enLocale.setId(UUID.randomUUID());
+        enLocale.setCode("en-US");
+        enLocale.setLanguage("en");
+        enLocale.setCountry("US");
+        enLocale.setActive(true);
+
+        when(waitlistUserRepository.findByEmail(EMAIL)).thenReturn(Optional.empty());
+        when(systemLocaleService.findActiveByCode("en-US")).thenReturn(enLocale);
+        when(waitlistUserRepository.save(any(WaitlistUser.class))).thenAnswer(invocation -> invocation.getArgument(0));
+
+        waitlistUserService.createOrResendConfirmationEmail(request, "en-US");
+
+        verify(systemLocaleService).findActiveByCode("en-US");
+        verify(confirmationEmailService).sendConfirmationEmail(
+                eq(FIRST_NAME), eq(LAST_NAME), eq(EMAIL), eq("en-US"));
+    }
+
+    @Test
+    @DisplayName("Should use en-US locale when acceptLanguage is 'en'")
+    void testGetLocaleCodeWithEnAcceptLanguage() {
+        SystemLocale enLocale = new SystemLocale();
+        enLocale.setId(UUID.randomUUID());
+        enLocale.setCode("en-US");
+        enLocale.setLanguage("en");
+        enLocale.setCountry("US");
+        enLocale.setActive(true);
+
+        when(waitlistUserRepository.findByEmail(EMAIL)).thenReturn(Optional.empty());
+        when(systemLocaleService.findActiveByCode("en-US")).thenReturn(enLocale);
+        when(waitlistUserRepository.save(any(WaitlistUser.class))).thenAnswer(invocation -> invocation.getArgument(0));
+
+        waitlistUserService.createOrResendConfirmationEmail(request, "en");
+
+        verify(systemLocaleService).findActiveByCode("en-US");
+        verify(confirmationEmailService).sendConfirmationEmail(
+                eq(FIRST_NAME), eq(LAST_NAME), eq(EMAIL), eq("en-US"));
+    }
+
+    @Test
+    @DisplayName("Should normalize acceptLanguage to lowercase and trim whitespace")
+    void testGetLocaleCodeNormalizesAcceptLanguage() {
+        SystemLocale ptLocale = new SystemLocale();
+        ptLocale.setId(UUID.randomUUID());
+        ptLocale.setCode("pt-BR");
+        ptLocale.setLanguage("pt");
+        ptLocale.setCountry("BR");
+        ptLocale.setActive(true);
+
+        when(waitlistUserRepository.findByEmail(EMAIL)).thenReturn(Optional.empty());
+        when(systemLocaleService.findActiveByCode("pt-BR")).thenReturn(ptLocale);
+        when(waitlistUserRepository.save(any(WaitlistUser.class))).thenAnswer(invocation -> invocation.getArgument(0));
+
+        waitlistUserService.createOrResendConfirmationEmail(request, "  PT-BR  ");
+
+        verify(systemLocaleService).findActiveByCode("pt-BR");
+        verify(confirmationEmailService).sendConfirmationEmail(
+                eq(FIRST_NAME), eq(LAST_NAME), eq(EMAIL), eq("pt-BR"));
+    }
 }

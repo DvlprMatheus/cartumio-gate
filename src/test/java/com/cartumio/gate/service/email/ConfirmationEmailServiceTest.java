@@ -1,7 +1,10 @@
 package com.cartumio.gate.service.email;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.inOrder;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -12,11 +15,13 @@ import java.util.UUID;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import org.mockito.ArgumentCaptor;
 import org.springframework.test.util.ReflectionTestUtils;
 
 import com.cartumio.gate.config.email.BrevoProperties;
 import com.cartumio.gate.domain.email.Email;
 import com.cartumio.gate.domain.email.EmailTemplate;
+import com.cartumio.gate.domain.email.EmailUser;
 import com.cartumio.gate.domain.token.TokenType;
 import com.cartumio.gate.dto.response.token.TokenResponse;
 import com.cartumio.gate.service.token.TokenService;
@@ -81,38 +86,72 @@ class ConfirmationEmailServiceTest {
         confirmationEmailService.sendConfirmationEmail(FIRST_NAME, LAST_NAME, EMAIL, LANGUAGE);
 
         verify(emailTemplateService).findActiveByCodeAndLanguage(TEMPLATE_CODE, LANGUAGE);
+        verify(tokenService).invalidateAllNonConsumedForEmail(TokenType.EMAIL_CONFIRMATION, EMAIL);
         verify(tokenService).generateToken(TokenType.EMAIL_CONFIRMATION, EMAIL);
         verify(emailProducer).sendEmail(any(Email.class));
     }
 
     @Test
-    @DisplayName("Should build email with correct template data")
-    void testSendConfirmationEmailWithCorrectTemplate() {
+    @DisplayName("Should build email with correct recipient")
+    void testSendConfirmationEmailWithCorrectRecipient() {
+        ArgumentCaptor<Email> emailCaptor = ArgumentCaptor.forClass(Email.class);
+        
         confirmationEmailService.sendConfirmationEmail(FIRST_NAME, LAST_NAME, EMAIL, LANGUAGE);
 
-        verify(emailTemplateService).findActiveByCodeAndLanguage(TEMPLATE_CODE, LANGUAGE);
-        verify(tokenService).generateToken(TokenType.EMAIL_CONFIRMATION, EMAIL);
-        verify(emailProducer).sendEmail(any(Email.class));
+        verify(emailProducer).sendEmail(emailCaptor.capture());
+        Email capturedEmail = emailCaptor.getValue();
+        
+        assertNotNull(capturedEmail.getTo());
+        assertEquals(1, capturedEmail.getTo().size());
+        EmailUser recipient = capturedEmail.getTo().get(0);
+        assertEquals(FIRST_NAME + " " + LAST_NAME, recipient.getName());
+        assertEquals(EMAIL, recipient.getEmail());
     }
 
     @Test
     @DisplayName("Should use correct sender from properties")
     void testSendConfirmationEmailUsesCorrectSender() {
+        ArgumentCaptor<Email> emailCaptor = ArgumentCaptor.forClass(Email.class);
+        
         confirmationEmailService.sendConfirmationEmail(FIRST_NAME, LAST_NAME, EMAIL, LANGUAGE);
 
-        verify(emailTemplateService).findActiveByCodeAndLanguage(TEMPLATE_CODE, LANGUAGE);
-        verify(tokenService).generateToken(TokenType.EMAIL_CONFIRMATION, EMAIL);
-        verify(emailProducer).sendEmail(any(Email.class));
+        verify(emailProducer).sendEmail(emailCaptor.capture());
+        Email capturedEmail = emailCaptor.getValue();
+        
+        assertNotNull(capturedEmail.getFrom());
+        assertEquals(SENDER_NAME, capturedEmail.getFrom().getName());
+        assertEquals(SENDER_EMAIL, capturedEmail.getFrom().getEmail());
     }
 
     @Test
-    @DisplayName("Should build email with full name in data")
-    void testSendConfirmationEmailWithFullName() {
+    @DisplayName("Should build email with correct subject and body from template")
+    void testSendConfirmationEmailWithCorrectTemplate() {
+        ArgumentCaptor<Email> emailCaptor = ArgumentCaptor.forClass(Email.class);
+        
         confirmationEmailService.sendConfirmationEmail(FIRST_NAME, LAST_NAME, EMAIL, LANGUAGE);
 
-        verify(emailTemplateService).findActiveByCodeAndLanguage(TEMPLATE_CODE, LANGUAGE);
-        verify(tokenService).generateToken(TokenType.EMAIL_CONFIRMATION, EMAIL);
-        verify(emailProducer).sendEmail(any(Email.class));
+        verify(emailProducer).sendEmail(emailCaptor.capture());
+        Email capturedEmail = emailCaptor.getValue();
+        
+        assertEquals(SUBJECT, capturedEmail.getSubject());
+        assertEquals(BODY, capturedEmail.getBody());
+    }
+
+    @Test
+    @DisplayName("Should build email with full name and confirmation URL in data")
+    void testSendConfirmationEmailWithFullNameAndUrl() {
+        ArgumentCaptor<Email> emailCaptor = ArgumentCaptor.forClass(Email.class);
+        
+        confirmationEmailService.sendConfirmationEmail(FIRST_NAME, LAST_NAME, EMAIL, LANGUAGE);
+
+        verify(emailProducer).sendEmail(emailCaptor.capture());
+        Email capturedEmail = emailCaptor.getValue();
+        
+        assertNotNull(capturedEmail.getData());
+        String expectedFullName = FIRST_NAME + " " + LAST_NAME;
+        assertEquals(expectedFullName, capturedEmail.getData().get("fullName"));
+        String expectedUrl = ORIGIN_BASE_URL + "/confirm-email?token=" + TOKEN_VALUE;
+        assertEquals(expectedUrl, capturedEmail.getData().get("url"));
     }
 
     @Test
@@ -120,6 +159,17 @@ class ConfirmationEmailServiceTest {
     void testSendConfirmationEmailPassesEmailToTokenService() {
         confirmationEmailService.sendConfirmationEmail(FIRST_NAME, LAST_NAME, EMAIL, LANGUAGE);
 
+        verify(tokenService).invalidateAllNonConsumedForEmail(eq(TokenType.EMAIL_CONFIRMATION), eq(EMAIL));
         verify(tokenService).generateToken(eq(TokenType.EMAIL_CONFIRMATION), eq(EMAIL));
+    }
+
+    @Test
+    @DisplayName("Should invalidate previous tokens before generating new one")
+    void testSendConfirmationEmailInvalidatesPreviousTokensBeforeGenerate() {
+        confirmationEmailService.sendConfirmationEmail(FIRST_NAME, LAST_NAME, EMAIL, LANGUAGE);
+
+        var inOrder = inOrder(tokenService);
+        inOrder.verify(tokenService).invalidateAllNonConsumedForEmail(TokenType.EMAIL_CONFIRMATION, EMAIL);
+        inOrder.verify(tokenService).generateToken(TokenType.EMAIL_CONFIRMATION, EMAIL);
     }
 }

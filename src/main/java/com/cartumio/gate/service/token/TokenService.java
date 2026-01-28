@@ -2,7 +2,9 @@ package com.cartumio.gate.service.token;
 
 import java.time.Duration;
 import java.time.Instant;
+import java.time.temporal.ChronoUnit;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
@@ -27,6 +29,7 @@ public class TokenService {
     private final TokenRepository tokenRepository;
 
     private static final Duration DEFAULT_EXPIRATION = Duration.ofHours(24);
+    private static final long CLEANUP_RETENTION_DAYS = 7;
 
     @Transactional
     public Token generateToken(TokenType tokenType, Duration expiration, Map<String, Object> metadata) {
@@ -133,6 +136,18 @@ public class TokenService {
         return true;
     }
 
+    @Transactional
+    public void invalidateAllNonConsumedForEmail(TokenType tokenType, String email) {
+        List<Token> tokens = tokenRepository.findByTokenTypeAndMetadataEmailAndIsConsumedFalse(tokenType, email);
+        if (tokens.isEmpty()) {
+            log.debug("No tokens found to invalidate | tokenType={}, email={}", tokenType, email);
+            return;
+        }
+        tokens.forEach(Token::consume);
+        tokenRepository.saveAll(tokens);
+        log.info("Tokens invalidated for email | tokenType={}, email={}, count={}", tokenType, email, tokens.size());
+    }
+
     public Map<String, Object> getMetadataFromToken(String token, TokenType tokenType) {
         Optional<Token> tokenOpt = tokenRepository.findByTokenAndTokenType(token, tokenType);
 
@@ -177,12 +192,8 @@ public class TokenService {
 
     @Transactional
     public void cleanupExpiredTokens() {
-        Instant now = Instant.now();
-
-        tokenRepository.deleteByExpiresAtBefore(now);
-
-        tokenRepository.deleteByIsConsumedTrueAndExpiresAtBefore(now);
-
-        log.info("Token cleanup completed | timestamp={}", now);
+        Instant cutOff = Instant.now().minus(CLEANUP_RETENTION_DAYS, ChronoUnit.DAYS);
+        tokenRepository.deleteByExpiresAtBefore(cutOff);
+        log.info("Token cleanup completed | cutOff={}, retentionDays={}", cutOff, CLEANUP_RETENTION_DAYS);
     }
 }

@@ -1,6 +1,7 @@
 package com.cartumio.gate.repository;
 
 import java.time.Instant;
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -22,9 +23,15 @@ public interface TokenRepository extends JpaRepository<Token, UUID> {
 
     Optional<Token> findByTokenAndTokenType(String token, TokenType tokenType);
 
-    @Modifying
-    @Query("DELETE FROM Token t WHERE t.isConsumed = true AND t.expiresAt < :now")
-    void deleteByIsConsumedTrueAndExpiresAtBefore(@Param("now") Instant now);
+    @Query(value = """
+            SELECT * FROM tokens
+            WHERE token_type = CAST(:#{#type.name()} AS text)
+              AND is_consumed = false
+              AND metadata->>'email' = :email
+            """, nativeQuery = true)
+    List<Token> findByTokenTypeAndMetadataEmailAndIsConsumedFalse(
+            @Param("type") TokenType type,
+            @Param("email") String email);
 
     @Modifying
     @Query("DELETE FROM Token t WHERE t.expiresAt < :now")

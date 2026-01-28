@@ -1,12 +1,17 @@
 package com.cartumio.gate.job;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.doThrow;
+
+import java.lang.reflect.Method;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import org.springframework.scheduling.annotation.Scheduled;
 
 import com.cartumio.gate.service.token.TokenService;
 
@@ -28,6 +33,17 @@ class TokenCleanupJobTest {
         tokenCleanupJob.cleanupExpiredTokens();
 
         verify(tokenService).cleanupExpiredTokens();
+    }
+
+    @Test
+    @DisplayName("Should be scheduled daily at 4 AM")
+    void testCleanupExpiredTokensScheduledDailyAt4Am() throws Exception {
+        Method method = TokenCleanupJob.class.getDeclaredMethod("cleanupExpiredTokens");
+        Scheduled scheduled = method.getAnnotation(Scheduled.class);
+        assertNotNull(scheduled, "cleanupExpiredTokens must have @Scheduled");
+        assertEquals("0 0 4 * * ?", scheduled.cron(),
+                "Job must run daily at 4:00 AM (cron: second minute hour day month day-of-week)");
+        assertEquals(-1, scheduled.fixedRate(), "Must use cron, not fixedRate");
     }
 
     @Test

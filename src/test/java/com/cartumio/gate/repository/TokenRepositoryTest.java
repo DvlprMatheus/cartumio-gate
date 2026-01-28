@@ -107,11 +107,4 @@ class TokenRepositoryTest {
         verify(tokenRepository).deleteByExpiresAtBefore(now);
     }
 
-    @Test
-    @DisplayName("Should delete consumed and expired tokens successfully")
-    void testDeleteByIsConsumedTrueAndExpiresAtBefore() {
-        Instant now = Instant.now();
-        tokenRepository.deleteByIsConsumedTrueAndExpiresAtBefore(now);
-        verify(tokenRepository).deleteByIsConsumedTrueAndExpiresAtBefore(now);
-    }
 }

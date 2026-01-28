@@ -15,7 +15,7 @@ public class TokenCleanupJob {
 
     private final TokenService tokenService;
 
-    @Scheduled(fixedRate = 3600000)
+    @Scheduled(cron = "0 0 4 * * ?")
     public void cleanupExpiredTokens() {
         log.info("Starting token cleanup job");
         try {

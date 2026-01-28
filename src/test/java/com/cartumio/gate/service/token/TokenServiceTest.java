@@ -6,15 +6,20 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyList;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.atLeastOnce;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import java.time.temporal.ChronoUnit;
+
 import java.time.Duration;
 import java.time.Instant;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
@@ -22,6 +27,7 @@ import java.util.UUID;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import org.mockito.ArgumentCaptor;
 
 import com.cartumio.gate.domain.token.Token;
 import com.cartumio.gate.domain.token.TokenType;
@@ -92,6 +98,32 @@ class TokenServiceTest {
         assertEquals(tokenType, generatedToken.getTokenType());
         assertFalse(generatedToken.isConsumed());
         assertTrue(generatedToken.getExpiresAt().isAfter(Instant.now()));
+        verify(tokenRepository).save(any(Token.class));
+    }
+
+    @Test
+    @DisplayName("Should use default expiration when expiration is null")
+    void testGenerateTokenWithNullExpiration() {
+        when(tokenRepository.existsByToken(any(String.class))).thenReturn(false);
+        when(tokenRepository.save(any(Token.class))).thenAnswer(invocation -> {
+            Token t = invocation.getArgument(0);
+            t.setId(UUID.randomUUID());
+            return t;
+        });
+
+        Duration nullExpiration = null;
+        Token generatedToken = tokenService.generateToken(tokenType, nullExpiration);
+
+        assertNotNull(generatedToken);
+        assertNotNull(generatedToken.getToken());
+        assertEquals(tokenType, generatedToken.getTokenType());
+        assertFalse(generatedToken.isConsumed());
+        assertTrue(generatedToken.getExpiresAt().isAfter(Instant.now()));
+        Instant expectedMin = Instant.now().plus(Duration.ofHours(23));
+        Instant expectedMax = Instant.now().plus(Duration.ofHours(25));
+        assertTrue(generatedToken.getExpiresAt().isAfter(expectedMin) && 
+                   generatedToken.getExpiresAt().isBefore(expectedMax),
+                   "Token should expire approximately 24 hours from now");
         verify(tokenRepository).save(any(Token.class));
     }
 
@@ -275,12 +307,57 @@ class TokenServiceTest {
     }
 
     @Test
-    @DisplayName("Should cleanup expired tokens successfully")
-    void testCleanupExpiredTokens() {
-        tokenService.cleanupExpiredTokens();
+    @DisplayName("Should invalidate all non-consumed tokens for email")
+    void testInvalidateAllNonConsumedForEmailSuccessfully() {
+        String email = "user@example.com";
+        token.setMetadata(Map.of("email", email));
+        Token token2 = new Token();
+        token2.setId(UUID.randomUUID());
+        token2.setToken(UUID.randomUUID().toString());
+        token2.setTokenType(tokenType);
+        token2.setExpiresAt(Instant.now().plus(Duration.ofHours(24)));
+        token2.setConsumed(false);
+        token2.setMetadata(Map.of("email", email));
+        when(tokenRepository.findByTokenTypeAndMetadataEmailAndIsConsumedFalse(eq(tokenType), eq(email)))
+                .thenReturn(List.of(token, token2));
+        when(tokenRepository.saveAll(anyList())).thenAnswer(invocation -> invocation.getArgument(0));
 
-        verify(tokenRepository).deleteByExpiresAtBefore(any(Instant.class));
-        verify(tokenRepository).deleteByIsConsumedTrueAndExpiresAtBefore(any(Instant.class));
+        tokenService.invalidateAllNonConsumedForEmail(tokenType, email);
+
+        assertTrue(token.isConsumed());
+        assertTrue(token2.isConsumed());
+        verify(tokenRepository).findByTokenTypeAndMetadataEmailAndIsConsumedFalse(tokenType, email);
+        verify(tokenRepository).saveAll(anyList());
+    }
+
+    @Test
+    @DisplayName("Should not call saveAll when no tokens found for invalidateAllNonConsumedForEmail")
+    void testInvalidateAllNonConsumedForEmailNoneFound() {
+        String email = "user@example.com";
+        when(tokenRepository.findByTokenTypeAndMetadataEmailAndIsConsumedFalse(eq(tokenType), eq(email)))
+                .thenReturn(List.of());
+
+        tokenService.invalidateAllNonConsumedForEmail(tokenType, email);
+
+        verify(tokenRepository).findByTokenTypeAndMetadataEmailAndIsConsumedFalse(tokenType, email);
+        verify(tokenRepository, never()).saveAll(anyList());
+    }
+
+    @Test
+    @DisplayName("Should cleanup only tokens older than 7 days")
+    void testCleanupExpiredTokens() {
+        Instant before = Instant.now();
+        tokenService.cleanupExpiredTokens();
+        Instant after = Instant.now();
+
+        ArgumentCaptor<Instant> cutOffCaptor = ArgumentCaptor.forClass(Instant.class);
+        verify(tokenRepository).deleteByExpiresAtBefore(cutOffCaptor.capture());
+        Instant cutOff = cutOffCaptor.getValue();
+
+        Instant expectedMin = before.minus(8, ChronoUnit.DAYS);
+        Instant expectedMax = after.minus(6, ChronoUnit.DAYS);
+        assertTrue(!cutOff.isBefore(expectedMin) && !cutOff.isAfter(expectedMax),
+                "cutOff should be approximately now - 7 days");
     }
 
     @Test

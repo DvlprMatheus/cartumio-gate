@@ -44,6 +44,7 @@ public class ConfirmationEmailService {
 
         log.debug("Email template found | code={}, language={}", emailTemplate.getCode(), language);
 
+        tokenService.invalidateAllNonConsumedForEmail(TokenType.EMAIL_CONFIRMATION, email);
         TokenResponse token = tokenService.generateToken(TokenType.EMAIL_CONFIRMATION, email);
         String confirmationUrl = originBaseUrl + "/confirm-email?token=" + token.token();
 
