@@ -6,22 +6,17 @@ ARG MAVEN_VERSION=""
 ARG INSTALL_GRADLE="true"
 ARG GRADLE_VERSION=""
 
-# Remove or fix expired Yarn repository GPG key
 RUN rm -f /etc/apt/sources.list.d/yarn.list || true \
     && rm -f /etc/apt/trusted.gpg.d/yarn.gpg || true
 
-# Install zsh and configure shell history
 RUN apt-get update && export DEBIAN_FRONTEND=noninteractive \
     && apt-get -y install --no-install-recommends zsh curl git \
     && rm -rf /var/lib/apt/lists/*
 
-# Install oh-my-zsh for vscode user
 RUN su vscode -c "sh -c \"$(curl -fsSL https://raw.githubusercontent.com/ohmyzsh/ohmyzsh/master/tools/install.sh)\" \"\" --unattended" || true
 
-# Configure zsh as default shell for vscode user
 RUN chsh -s $(which zsh) vscode
 
-# Configure shell history persistence
 RUN mkdir -p /home/vscode/.zsh_history.d /dc/shellhistory \
     && touch /home/vscode/.zsh_history \
     && chown -R vscode:vscode /home/vscode/.zsh_history* /dc/shellhistory \

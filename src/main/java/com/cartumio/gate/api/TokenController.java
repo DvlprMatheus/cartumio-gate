@@ -28,10 +28,8 @@ public class TokenController {
     public ResponseEntity<TokenVerificationResponse> verifyToken(
             @Valid @RequestBody TokenVerificationRequest request) {
         log.info("Token verification requested | tokenType={}", request.tokenType());
-
         TokenVerificationResponse response = tokenService.validateTokenWithDetails(
                 request.token(), request.tokenType());
-
         return ResponseEntity.ok(response);
     }
 
@@ -39,13 +37,10 @@ public class TokenController {
     public ResponseEntity<Void> invalidateToken(
             @Valid @RequestBody TokenInvalidationRequest request) {
         log.info("Token invalidation requested");
-
         boolean invalidated = tokenService.invalidateToken(request.token());
-
-        if (invalidated) {
-            return ResponseEntity.ok().build();
-        } else {
+        if (!invalidated) {
             return ResponseEntity.status(HttpStatus.NOT_FOUND).build();
         }
+        return ResponseEntity.ok().build();
     }
 }

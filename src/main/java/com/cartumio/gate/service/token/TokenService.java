@@ -166,12 +166,11 @@ public class TokenService {
             throw new IllegalArgumentException("Email not found in metadata");
         }
 
-        if (!(emailObj instanceof String)) {
+        if (!(emailObj instanceof String email)) {
             log.debug("Email in metadata is not a string | emailType={}", emailObj.getClass().getName());
             throw new IllegalArgumentException("Email in metadata is not a string");
         }
 
-        String email = (String) emailObj;
         log.debug("Email extracted from metadata | email={}", email);
         return email;
     }

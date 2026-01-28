@@ -2,7 +2,7 @@ spring:
   application:
     name: gate
   profiles:
-    active: ${SPRING_PROFILES_ACTIVE}
+    active: ${SPRING_PROFILES_ACTIVE:dev}
   datasource:
     url: jdbc:postgresql://${POSTGRES_HOSTNAME}:${POSTGRES_PORT}/${POSTGRES_DB}
     username: ${POSTGRES_USER}
@@ -46,3 +46,7 @@ ratelimit:
   default-rule:
     capacity: 10
     refill: 1m
+  rules:
+      - path: /gate/v1/waitlist-users/create-or-resend
+        capacity: 3
+        refill: 5m
