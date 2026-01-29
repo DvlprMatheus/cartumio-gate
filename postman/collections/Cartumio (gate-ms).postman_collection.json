@@ -1,0 +1,446 @@
+{
+  "info": {
+    "_postman_id": "4e142aec-f4ae-49d2-ac8a-6c91cd261ce9",
+    "name": "Cartumio (gate-ms)",
+    "description": "## Cartumio\n\nÉ um projeto de correio digital que resgata a experiência afetiva do envio e recebimento de cartas, inspirada nos tempos antigos. Diferente dos serviços tradicionais de e-mail, a plataforma não incentiva a comunicação imediata. Pelo contrário, valoriza o tempo, a espera e a intenção por trás de cada mensagem.\n\nA proposta é oferecer uma **caixa de correio virtual**, onde mensagens são entregues de forma mais contemplativa, reforçando o sentimento de expectativa e cuidado que existia nas trocas de cartas físicas.\n\n## Sobre esta Collection (Gate Service)\n\nEsta **Collection do Postman** é voltada especificamente para o **serviço de gate do Cartumio**.\n\nEla contempla endpoints responsáveis por funcionalidades iniciais da plataforma, com foco em:\n\n- Cadastro de usuários na **fila de espera**\n    \n- **Confirmação de e-mail** dos usuários cadastrados\n    \n- Gerenciamento de **token de segurança**",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "WaitlistUser",
+      "item": [
+        {
+          "name": "CRIAR USUÁRIO OU REENVIAR",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code é 200 ou 201 (criação/reenvio bem-sucedido)', function () {",
+                  "    pm.expect(pm.response.code).to.be.oneOf([",
+                  "        200,",
+                  "        201",
+                  "    ]);",
+                  "})",
+                  "",
+                  "pm.test('Tempo de resposta é aceitável (menor que 2000ms)', function () {",
+                  "    pm.expect(pm.response.responseTime).to.be.below(2000);",
+                  "})",
+                  "",
+                  "pm.test('Resposta está no formato JSON', function () {",
+                  "    pm.response.to.be.json;",
+                  "})",
+                  "",
+                  "pm.test('Header Content-Type é application/json', function () {",
+                  "    pm.expect(pm.response.headers.get('Content-Type')).to.include('application/json');",
+                  "})",
+                  "",
+                  "pm.test('Resposta contém campos esperados', function () {",
+                  "    const jsonData = pm.response.json();",
+                  "    pm.expect(jsonData).to.be.an('object');",
+                  "    const hasExpectedFields = jsonData.hasOwnProperty('message') || jsonData.hasOwnProperty('success') || jsonData.hasOwnProperty('userId') || jsonData.hasOwnProperty('id') || jsonData.hasOwnProperty('data') || jsonData.hasOwnProperty('status');",
+                  "    pm.expect(hasExpectedFields, 'Resposta deve conter campos esperados como message, success, userId, id, data ou status').to.be.true;",
+                  "})",
+                  "",
+                  "pm.test('Tratamento de rate limit (429) - se aplicável', function () {",
+                  "    if (pm.response.code === 429) {",
+                  "        const jsonData = pm.response.json();",
+                  "        pm.expect(jsonData).to.have.property('message');",
+                  "        console.log('Rate limit atingido: ' + jsonData.message);",
+                  "    } else {",
+                  "        pm.expect(pm.response.code).to.not.equal(429);",
+                  "    }",
+                  "})",
+                  "",
+                  "pm.test('Corpo da resposta não está vazio', function () {",
+                  "    pm.expect(pm.response.text()).to.not.be.empty;",
+                  "})"
+                ]
+              }
+            }
+          ],
+          "id": "4ced2bc6-830b-4619-8987-4bf63ba273c8",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept-Language",
+                "value": "pt-BR",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\r\n    \"firstName\": \"John\", // Insira seu primeiro nome aqui.\r\n    \"lastName\": \"Doe\",   // Insira seu sobrenome aqui.\r\n    \"email\": \"john.doe@test.com\" // Insira seu endereço de e-mail aqui.\r\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/gate/v1/waitlist-users/create-or-resend",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "gate",
+                "v1",
+                "waitlist-users",
+                "create-or-resend"
+              ]
+            },
+            "description": "Endpoint para a criação de um novo usuário que irá receber ou reenviar um e-mail de confirmação em **português (pt-BR)**.\n\n- Rate limit: 3 e-mails/5 minutos."
+          },
+          "response": []
+        },
+        {
+          "name": "CRIAR USUÁRIO OU REENVIAR (INGLÊS)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code é 200 ou 201 (criação/reenvio bem-sucedido)', function () {",
+                  "    pm.expect(pm.response.code).to.be.oneOf([",
+                  "        200,",
+                  "        201",
+                  "    ]);",
+                  "})",
+                  "",
+                  "pm.test('Tempo de resposta é aceitável (menor que 2000ms)', function () {",
+                  "    pm.expect(pm.response.responseTime).to.be.below(2000);",
+                  "})",
+                  "",
+                  "pm.test('Resposta está no formato JSON', function () {",
+                  "    pm.response.to.be.json;",
+                  "})",
+                  "",
+                  "pm.test('Header Content-Type é application/json', function () {",
+                  "    pm.expect(pm.response.headers.get('Content-Type')).to.include('application/json');",
+                  "})",
+                  "",
+                  "pm.test('Resposta contém campos esperados', function () {",
+                  "    const jsonData = pm.response.json();",
+                  "    pm.expect(jsonData).to.be.an('object');",
+                  "    const hasExpectedFields = jsonData.hasOwnProperty('message') || jsonData.hasOwnProperty('success') || jsonData.hasOwnProperty('userId') || jsonData.hasOwnProperty('id') || jsonData.hasOwnProperty('data') || jsonData.hasOwnProperty('status');",
+                  "    pm.expect(hasExpectedFields, 'Resposta deve conter campos esperados como message, success, userId, id, data ou status').to.be.true;",
+                  "})",
+                  "",
+                  "pm.test('Tratamento de rate limit (429) - se aplicável', function () {",
+                  "    if (pm.response.code === 429) {",
+                  "        const jsonData = pm.response.json();",
+                  "        pm.expect(jsonData).to.have.property('message');",
+                  "        console.log('Rate limit atingido: ' + jsonData.message);",
+                  "    } else {",
+                  "        pm.expect(pm.response.code).to.not.equal(429);",
+                  "    }",
+                  "})",
+                  "",
+                  "pm.test('Corpo da resposta não está vazio', function () {",
+                  "    pm.expect(pm.response.text()).to.not.be.empty;",
+                  "})"
+                ]
+              }
+            }
+          ],
+          "id": "3f91ea29-7564-46fe-bca0-0f61eaeafb6e",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept-Language",
+                "value": "en-US",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\r\n    \"firstName\": \"John\", // Insira seu primeiro nome aqui.\r\n    \"lastName\": \"Doe\",   // Insira seu sobrenome aqui.\r\n    \"email\": \"john.doe@test.com\" // Insira seu endereço de e-mail aqui.\r\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/gate/v1/waitlist-users/create-or-resend",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "gate",
+                "v1",
+                "waitlist-users",
+                "create-or-resend"
+              ]
+            },
+            "description": "Endpoint para a criação de um novo usuário que irá receber ou reenviar um e-mail de confirmação em **inglês (en-US)**.\n\n- Rate limit: 3 e-mails/5 minutos."
+          },
+          "response": []
+        },
+        {
+          "name": "CONFIRMAR USUÁRIO",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code é 200 (confirmação bem-sucedida)', function () {",
+                  "    pm.expect(pm.response.code).to.equal(200);",
+                  "})",
+                  "",
+                  "pm.test('Tempo de resposta é aceitável (menor que 2000ms)', function () {",
+                  "    pm.expect(pm.response.responseTime).to.be.below(2000);",
+                  "})",
+                  "",
+                  "pm.test('Resposta está no formato JSON válido', function () {",
+                  "    pm.response.to.be.json;",
+                  "})",
+                  "",
+                  "pm.test('Header Content-Type é application/json', function () {",
+                  "    pm.expect(pm.response.headers.get('Content-Type')).to.include('application/json');",
+                  "})",
+                  "",
+                  "pm.test('Token foi processado corretamente', function () {",
+                  "    const jsonData = pm.response.json();",
+                  "    pm.expect(jsonData).to.be.an('object');",
+                  "    const tokenProcessed = jsonData.hasOwnProperty('confirmed') || jsonData.hasOwnProperty('success') || jsonData.hasOwnProperty('message') || jsonData.hasOwnProperty('status') || jsonData.hasOwnProperty('data');",
+                  "    pm.expect(tokenProcessed, 'Resposta deve indicar que o token foi processado').to.be.true;",
+                  "})",
+                  "",
+                  "pm.test('Resposta indica confirmação bem-sucedida', function () {",
+                  "    const jsonData = pm.response.json();",
+                  "    const isSuccess = jsonData.success === true || jsonData.confirmed === true || jsonData.status === 'confirmed' || jsonData.status === 'success' || jsonData.message && typeof jsonData.message === 'string';",
+                  "    pm.expect(isSuccess, 'Resposta deve indicar confirmação bem-sucedida').to.be.true;",
+                  "})",
+                  "",
+                  "pm.test('Corpo da resposta não está vazio', function () {",
+                  "    pm.expect(pm.response.text()).to.not.be.empty;",
+                  "})",
+                  "",
+                  "pm.test('Tratamento de token inválido ou expirado (400/401/404)', function () {",
+                  "    if ([",
+                  "            400,",
+                  "            401,",
+                  "            404",
+                  "        ].includes(pm.response.code)) {",
+                  "        const jsonData = pm.response.json();",
+                  "        pm.expect(jsonData).to.have.property('message');",
+                  "        console.log('Token inválido ou expirado: ' + jsonData.message);",
+                  "    }",
+                  "})"
+                ]
+              }
+            }
+          ],
+          "id": "463b8b67-4e11-4e9a-b43e-caf7bbc05a0a",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\r\n    \"token\": \"seu-token\" // Substitua 'seu-token' pelo token que você recebeu por e-mail.\r\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/gate/v1/waitlist-users/confirm",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "gate",
+                "v1",
+                "waitlist-users",
+                "confirm"
+              ]
+            },
+            "description": "Endpoint para confirmar o e-mail do usuário e invalidar o token de confirmação."
+          },
+          "response": []
+        }
+      ],
+      "id": "f79bb8af-4ae1-4f69-bce0-38d180edf086",
+      "description": "Esta pasta contém os endpoints relacionados ao **cadastro de usuários na fila de espera**. Os usuários podem se cadastrar na fila, com a funcionalidade de criação de um novo usuário, diferenciando entre os idiomas **português (pt-BR)** e **inglês (en-US)**. Após o cadastro, um e-mail de confirmação será enviado para validar o registro. Caso necessário, o mesmo disponibiliza um reenvio do e-mail de confirmação em casos de erros."
+    },
+    {
+      "name": "Token",
+      "item": [
+        {
+          "name": "VERIFICAR",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code é 200 (token válido)', function () {",
+                  "    pm.expect(pm.response.code).to.equal(200);",
+                  "})",
+                  "",
+                  "pm.test('Tempo de resposta é aceitável (menor que 1500ms)', function () {",
+                  "    pm.expect(pm.response.responseTime).to.be.below(1500);",
+                  "})",
+                  "",
+                  "pm.test('Resposta está no formato JSON', function () {",
+                  "    pm.response.to.be.json;",
+                  "})",
+                  "",
+                  "pm.test('Header Content-Type é application/json', function () {",
+                  "    pm.expect(pm.response.headers.get('Content-Type')).to.include('application/json');",
+                  "})",
+                  "",
+                  "pm.test('Resposta contém status de validade do token', function () {",
+                  "    const jsonData = pm.response.json();",
+                  "    pm.expect(jsonData).to.be.an('object');",
+                  "    const hasValidityStatus = jsonData.hasOwnProperty('valid') || jsonData.hasOwnProperty('isValid') || jsonData.hasOwnProperty('status') || jsonData.hasOwnProperty('active') || jsonData.hasOwnProperty('expired') || jsonData.hasOwnProperty('message') || jsonData.hasOwnProperty('data');",
+                  "    pm.expect(hasValidityStatus, 'Resposta deve conter informação sobre validade do token').to.be.true;",
+                  "})",
+                  "",
+                  "pm.test('Corpo da resposta não está vazio', function () {",
+                  "    pm.expect(pm.response.text()).to.not.be.empty;",
+                  "})",
+                  "",
+                  "pm.test('Tratamento de token inválido ou expirado (400/401/404)', function () {",
+                  "    if ([",
+                  "            400,",
+                  "            401,",
+                  "            404",
+                  "        ].includes(pm.response.code)) {",
+                  "        const jsonData = pm.response.json();",
+                  "        pm.expect(jsonData).to.be.an('object');",
+                  "        console.log('Token não encontrado ou inválido');",
+                  "    }",
+                  "})"
+                ]
+              }
+            }
+          ],
+          "id": "6511830b-fe0b-4e59-906d-e10706fc8e0f",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\r\n    \"token\": \"seu-token\", // Substitua 'seu-token' pelo token que você recebeu por e-mail.\r\n    \"tokenType\": \"EMAIL_CONFIRMATION\" // Tipo de token. Neste caso, 'EMAIL_CONFIRMATION' é o tipo correto. Não existem outros tipos de token.\r\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/gate/v1/tokens/verify",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "gate",
+                "v1",
+                "tokens",
+                "verify"
+              ]
+            },
+            "description": "Endpoint para verificar se o token de confirmação enviado ao usuário ainda é válido."
+          },
+          "response": []
+        },
+        {
+          "name": "INVALIDAR",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code é 200 (invalidação bem-sucedida)', function () {",
+                  "    pm.expect(pm.response.code).to.equal(200);",
+                  "})",
+                  "",
+                  "pm.test('Tempo de resposta é aceitável (menor que 1500ms)', function () {",
+                  "    pm.expect(pm.response.responseTime).to.be.below(1500);",
+                  "})",
+                  "",
+                  "pm.test('Resposta está no formato JSON', function () {",
+                  "    pm.response.to.be.json;",
+                  "})",
+                  "",
+                  "pm.test('Header Content-Type é application/json', function () {",
+                  "    pm.expect(pm.response.headers.get('Content-Type')).to.include('application/json');",
+                  "})",
+                  "",
+                  "pm.test('Resposta confirma invalidação do token', function () {",
+                  "    const jsonData = pm.response.json();",
+                  "    pm.expect(jsonData).to.be.an('object');",
+                  "    const hasInvalidationConfirmation = jsonData.hasOwnProperty('invalidated') || jsonData.hasOwnProperty('success') || jsonData.hasOwnProperty('message') || jsonData.hasOwnProperty('status') || jsonData.hasOwnProperty('data');",
+                  "    pm.expect(hasInvalidationConfirmation, 'Resposta deve confirmar a invalidação do token').to.be.true;",
+                  "})",
+                  "",
+                  "pm.test('Corpo da resposta não está vazio', function () {",
+                  "    pm.expect(pm.response.text()).to.not.be.empty;",
+                  "})",
+                  "",
+                  "pm.test('Tratamento de token já invalidado ou não encontrado (400/404)', function () {",
+                  "    if ([",
+                  "            400,",
+                  "            404",
+                  "        ].includes(pm.response.code)) {",
+                  "        const jsonData = pm.response.json();",
+                  "        pm.expect(jsonData).to.be.an('object');",
+                  "        console.log('Token já invalidado ou não encontrado');",
+                  "    }",
+                  "})"
+                ]
+              }
+            }
+          ],
+          "id": "778e3373-f353-4b8d-af30-3277fc445159",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "// Utilize este método apenas se você deseja testar a invalidação do token. \r\n// Se o objetivo for confirmar o usuário, utilize o endpoint \"Waitlist/CONFIRMAR USUÁRIO\".\r\n{\r\n    \"token\": \"seu-token\", // Substitua 'seu-token' pelo token que você recebeu por e-mail.\r\n    \"tokenType\": \"EMAIL_CONFIRMATION\" // Tipo de token. Neste caso, 'EMAIL_CONFIRMATION' é o tipo correto. Não existem outros tipos de token.\r\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/gate/v1/tokens/invalidate",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "gate",
+                "v1",
+                "tokens",
+                "invalidate"
+              ]
+            },
+            "description": "Endpoint para invalidar o token de confirmação após o seu uso bem-sucedido ou quando o token expirar."
+          },
+          "response": []
+        }
+      ],
+      "id": "b610dfb5-da80-43db-8445-89cd8dd0cecf",
+      "description": "Esta pasta contém os endpoints responsáveis pela verificação e invalidação de tokens gerados durante o processo de cadastro e confirmação de e-mail."
+    }
+  ],
+  "variable": [
+    {
+      "id": "f360e19f-2203-4579-bb42-d2095597a472",
+      "key": "baseUrl",
+      "value": "",
+      "type": "default"
+    }
+  ]
+}

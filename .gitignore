@@ -36,3 +36,7 @@ out/
 ### VS Code ###
 .vscode/
 .devcontainer/
+
+### Postman ###
+.postman/
+postman/globals/workspace.postman_globals.json
