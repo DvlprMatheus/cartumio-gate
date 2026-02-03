@@ -19,6 +19,7 @@ import org.mockito.ArgumentCaptor;
 import org.springframework.test.util.ReflectionTestUtils;
 
 import com.cartumio.gate.config.email.BrevoProperties;
+import com.cartumio.gate.config.rabbitmq.producer.EmailProducer;
 import com.cartumio.gate.domain.email.Email;
 import com.cartumio.gate.domain.email.EmailTemplate;
 import com.cartumio.gate.domain.email.EmailUser;

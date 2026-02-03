@@ -1,4 +1,4 @@
-package com.cartumio.gate.service.email;
+package com.cartumio.gate.config.rabbitmq.producer;
 
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.eq;

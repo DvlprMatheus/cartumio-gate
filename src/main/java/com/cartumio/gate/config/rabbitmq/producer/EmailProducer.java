@@ -1,4 +1,4 @@
-package com.cartumio.gate.service.email;
+package com.cartumio.gate.config.rabbitmq.producer;
 
 import org.springframework.amqp.rabbit.core.RabbitTemplate;
 import org.springframework.stereotype.Service;

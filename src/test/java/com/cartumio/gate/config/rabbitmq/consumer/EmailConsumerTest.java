@@ -1,4 +1,4 @@
-package com.cartumio.gate.service.email;
+package com.cartumio.gate.config.rabbitmq.consumer;
 
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
@@ -13,6 +13,7 @@ import org.junit.jupiter.api.Test;
 import com.cartumio.gate.domain.email.Email;
 import com.cartumio.gate.domain.email.EmailUser;
 import com.cartumio.gate.exception.EmailFailedException;
+import com.cartumio.gate.service.email.EmailService;
 
 import java.util.List;
 

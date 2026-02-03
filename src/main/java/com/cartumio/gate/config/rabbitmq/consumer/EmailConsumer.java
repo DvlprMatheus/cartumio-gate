@@ -1,4 +1,4 @@
-package com.cartumio.gate.service.email;
+package com.cartumio.gate.config.rabbitmq.consumer;
 
 import org.springframework.amqp.rabbit.annotation.RabbitListener;
 import org.springframework.stereotype.Service;
@@ -7,6 +7,7 @@ import com.cartumio.gate.config.rabbitmq.RabbitMQConfig;
 import com.cartumio.gate.domain.email.Email;
 import com.cartumio.gate.domain.email.EmailUser;
 import com.cartumio.gate.exception.EmailFailedException;
+import com.cartumio.gate.service.email.EmailService;
 
 import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;

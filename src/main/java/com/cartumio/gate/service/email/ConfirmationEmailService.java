@@ -6,6 +6,7 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
 import com.cartumio.gate.config.email.BrevoProperties;
+import com.cartumio.gate.config.rabbitmq.producer.EmailProducer;
 import com.cartumio.gate.domain.email.Email;
 import com.cartumio.gate.domain.email.EmailTemplate;
 import com.cartumio.gate.domain.email.EmailUser;
