@@ -26,7 +26,7 @@ Fornecer um serviço robusto e escalável para:
 ### Stack Principal
 
 - **Java 21** - Linguagem de programação
-- **Spring Boot 4.0.1** - Framework principal
+- **Spring Boot 4.0.2** - Framework principal
 - **Spring Data JPA** - Abstração de acesso a dados
 - **Hibernate** - ORM (Object-Relational Mapping)
 - **PostgreSQL** - Banco de dados relacional
