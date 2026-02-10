@@ -580,7 +580,7 @@ As migrações Flyway são executadas automaticamente na inicialização.
 curl -X POST http://localhost:8080/gate/v1/waitlist-users/create-or-resend \
   -H "Content-Type: application/json" \
   -H "Accept-Language: pt-BR" \
-  -d '{"firstName":"João","lastName":"Silva","email":"joao@example.com"}'
+  -d '{"firstName":"John","lastName":"Doe","email":"john@example.com"}'
 
 # Cadastrar usuário na fila (Inglês)
 curl -X POST http://localhost:8080/gate/v1/waitlist-users/create-or-resend \
