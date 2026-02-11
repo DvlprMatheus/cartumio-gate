@@ -522,7 +522,7 @@ O projeto utiliza **Flyway** para versionamento do banco de dados:
 ### 1. Pré-requisitos
 
 - Java 21 ou superior
-- PostgreSQL 12 ou superior
+- PostgreSQL 13 ou superior
 - RabbitMQ 3.8 ou superior
 - Gradle 8.0 ou superior
 
