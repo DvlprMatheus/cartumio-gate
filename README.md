@@ -188,25 +188,28 @@ src/main/java/com/cartumio/gate/
 
 ### Application Properties
 
-O projeto utiliza `application.yaml` com as seguintes configurações principais:
+O projeto utiliza apenas `application.yaml` (configuração unificada para todos os ambientes). As configurações principais:
 
 ```yaml
 spring:
   application:
     name: gate
   profiles:
-    active: ${SPRING_PROFILES_ACTIVE:dev}
+    active: ${SPRING_PROFILES_ACTIVE}
   datasource:
-    url: jdbc:postgresql://${POSTGRES_HOSTNAME}:${POSTGRES_PORT}/${POSTGRES_DB}
+    url: ${POSTGRES_URL}
     username: ${POSTGRES_USER}
     password: ${POSTGRES_PASSWORD}
+    driver-class-name: org.postgresql.Driver
   jpa:
     hibernate:
       ddl-auto: none  # Flyway gerencia o schema
     show-sql: true
+    open-in-view: true
   flyway:
     enabled: true
-    locations: classpath:db/migration
+    locations:
+      - classpath:db/migration
   rabbitmq:
     host: ${RABBITMQ_HOST}
     port: ${RABBITMQ_PORT}
@@ -223,7 +226,7 @@ spring:
           max-interval: 10000
 
 origin:
-  base-url: ${ORIGIN_BASE_URL:http://localhost:3000}
+  base-url: ${ORIGIN_BASE_URL}
 
 brevo:
   api-key: ${BREVO_API_KEY}
@@ -244,19 +247,23 @@ ratelimit:
 
 ### Variáveis de Ambiente
 
-#### Banco de Dados
-- `POSTGRES_HOSTNAME`: Hostname do PostgreSQL (padrão: localhost)
-- `POSTGRES_PORT`: Porta do PostgreSQL (padrão: 5432)
-- `POSTGRES_DB`: Nome do banco de dados
+Um exemplo completo de variáveis está em `.devcontainer/.env.example`. Resumo:
+
+#### Perfil
+- `SPRING_PROFILES_ACTIVE`: Perfil ativo do Spring (ex.: `dev`)
+
+#### Banco de Dados (PostgreSQL)
 - `POSTGRES_USER`: Usuário do banco de dados
 - `POSTGRES_PASSWORD`: Senha do banco de dados
+- `POSTGRES_URL`: URL JDBC completa (ex.: `jdbc:postgresql://postgres:5432/cartumio_gate`)
 
 #### RabbitMQ
 - `RABBITMQ_HOST`: Hostname do RabbitMQ
-- `RABBITMQ_PORT`: Porta do RabbitMQ (padrão: 5672)
+- `RABBITMQ_PORT`: Porta AMQP (padrão: 5672)
+- `RABBITMQ_MANAGEMENT_PORT`: Porta do Management UI (padrão: 15672)
 - `RABBITMQ_USERNAME`: Usuário do RabbitMQ
 - `RABBITMQ_PASSWORD`: Senha do RabbitMQ
-- `RABBITMQ_VIRTUAL_HOST`: Virtual host do RabbitMQ (padrão: /)
+- `RABBITMQ_VIRTUAL_HOST`: Virtual host do RabbitMQ (padrão: `/`)
 
 #### Brevo
 - `BREVO_API_KEY`: Chave de API do Brevo (obrigatório)
@@ -265,8 +272,7 @@ ratelimit:
 - `BREVO_DEFAULT_SENDER_EMAIL`: E-mail do remetente padrão
 
 #### Outras
-- `SPRING_PROFILES_ACTIVE`: Perfil ativo do Spring (padrão: dev)
-- `ORIGIN_BASE_URL`: URL base da aplicação frontend (padrão: http://localhost:3000)
+- `ORIGIN_BASE_URL`: URL base da aplicação frontend (ex.: `http://localhost:3000`)
 
 ## 🧪 Testes
 
@@ -530,27 +536,21 @@ O projeto utiliza **Flyway** para versionamento do banco de dados:
 
 ```bash
 git clone <repository-url>
-cd gate-ms
+cd cartumio-gate
 ```
 
 ### 3. Configurar Variáveis de Ambiente
 
-Crie um arquivo `.env` ou configure as variáveis:
+Copie `.devcontainer/.env.example` para `.env` (ou para o local onde o projeto lê variáveis) e ajuste os valores. Exemplo:
 
 ```bash
-# Banco de Dados
-export POSTGRES_HOSTNAME=postgres
-export POSTGRES_PORT=5432
-export POSTGRES_DB=cartumio_gate
-export POSTGRES_USER=postgres
-export POSTGRES_PASSWORD=postgres
+# Perfil
+export SPRING_PROFILES_ACTIVE=dev
 
-# RabbitMQ
-export RABBITMQ_HOST=rabbitmq
-export RABBITMQ_PORT=5672
-export RABBITMQ_USERNAME=guest
-export RABBITMQ_PASSWORD=guest
-export RABBITMQ_VIRTUAL_HOST=/
+# PostgreSQL (URL completa)
+export POSTGRES_USER=cartumio_user
+export POSTGRES_PASSWORD=cartumio_password
+export POSTGRES_URL=jdbc:postgresql://localhost:5432/cartumio_gate
 
 # Brevo
 export BREVO_API_KEY=sua_chave_api_brevo
@@ -558,10 +558,19 @@ export BREVO_API_BASE_URL=https://api.brevo.com/v3
 export BREVO_DEFAULT_SENDER_NAME=Cartumio
 export BREVO_DEFAULT_SENDER_EMAIL=noreply@cartumio.com
 
-# Outras
-export SPRING_PROFILES_ACTIVE=dev
+# Origin (frontend)
 export ORIGIN_BASE_URL=http://localhost:3000
+
+# RabbitMQ
+export RABBITMQ_HOST=localhost
+export RABBITMQ_PORT=5672
+export RABBITMQ_MANAGEMENT_PORT=15672
+export RABBITMQ_USERNAME=guest
+export RABBITMQ_PASSWORD=guest
+export RABBITMQ_VIRTUAL_HOST=/
 ```
+
+**Desenvolvimento com Dev Container:** o repositório inclui um Dev Container (`.devcontainer/`) com Docker Compose que sobe PostgreSQL e RabbitMQ. Abra o projeto no VS Code/Cursor com “Reopen in Container”; use o `.env.example` como referência (no container, `POSTGRES_URL` deve apontar para o serviço `postgres`, ex.: `jdbc:postgresql://postgres:5432/cartumio_gate`).
 
 ### 4. Executar Migrações
 
