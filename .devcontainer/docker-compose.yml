@@ -13,46 +13,43 @@ services:
     build: 
       context: .
       dockerfile: Dockerfile
-    env_file:
-      - .env
+    environment:
+        POSTGRES_PASSWORD: cartumio_password
+        POSTGRES_USER: cartumio_user
+        POSTGRES_DB: cartumio_gate
+        POSTGRES_HOSTNAME: postgresdb
     volumes:
       - ../..:/workspaces:cached
       - shell-history:/dc/shellhistory
     command: sleep infinity
-    ports:
-      - "8080:8080"
     networks:
       - gate-network
-    depends_on:
-      - postgres
-      - rabbitmq
 
   postgres:
     container_name: postgres-cartumio-gate
     image: postgres:16-alpine
     restart: unless-stopped
     volumes:
-      - postgres-gate-data:/var/lib/postgresql
-    env_file:
-      - .env
+      - postgres-gate-data:/var/lib/postgresql/data
+    environment:
+        POSTGRES_PASSWORD: cartumio_password
+        POSTGRES_USER: cartumio_user
+        POSTGRES_DB: cartumio_gate
     networks:
       - gate-network
-    ports:
-      - "${POSTGRES_PORT}:5432"
 
   rabbitmq:
     container_name: rabbitmq-cartumio-gate
     image: rabbitmq:3-management-alpine
     restart: unless-stopped
     volumes:
-      - rabbitmq-gate-data:/var/lib/rabbitmq
-    env_file:
-      - .env
+      - rabbitmq-gate-data:/var/lib/rabbitmq/data
     environment:
-      RABBITMQ_DEFAULT_USER: ${RABBITMQ_USERNAME}
-      RABBITMQ_DEFAULT_PASS: ${RABBITMQ_PASSWORD}
+      RABBITMQ_DEFAULT_USER: guest
+      RABBITMQ_DEFAULT_PASS: guest
+      RABBITMQ_DEFAULT_VHOST: /
+    ports:
+      - "5672:5672"
+      - "15672:15672"
     networks:
       - gate-network
-    ports:
-      - "${RABBITMQ_PORT}:5672"
-      - "${RABBITMQ_MANAGEMENT_PORT}:15672"
