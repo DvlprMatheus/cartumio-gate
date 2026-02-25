@@ -1,8 +1,5 @@
 package com.cartumio.gate.domain;
 
-import java.time.Instant;
-import java.util.UUID;
-
 import jakarta.persistence.Column;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
@@ -10,6 +7,8 @@ import jakarta.persistence.Id;
 import jakarta.persistence.MappedSuperclass;
 import jakarta.persistence.PrePersist;
 import jakarta.persistence.PreUpdate;
+import java.time.Instant;
+import java.util.UUID;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -21,24 +20,24 @@ import lombok.Setter;
 @NoArgsConstructor
 @MappedSuperclass
 public abstract class AbstractEntity {
-    
-    @Id
-    @GeneratedValue(strategy = GenerationType.UUID)
-    private UUID id;
 
-    @Column(name = "created_at", nullable = false, updatable = false)
-    private Instant createdAt;
+  @Id
+  @GeneratedValue(strategy = GenerationType.UUID)
+  private UUID id;
 
-    @Column(name = "updated_at")
-    private Instant updatedAt;
+  @Column(name = "created_at", nullable = false, updatable = false)
+  private Instant createdAt;
 
-    @PrePersist
-    public void prePersist() {
-        this.createdAt = Instant.now();
-    }
+  @Column(name = "updated_at")
+  private Instant updatedAt;
 
-    @PreUpdate
-    public void preUpdate() {
-        this.updatedAt = Instant.now();
-    }
+  @PrePersist
+  public void prePersist() {
+    this.createdAt = Instant.now();
+  }
+
+  @PreUpdate
+  public void preUpdate() {
+    this.updatedAt = Instant.now();
+  }
 }

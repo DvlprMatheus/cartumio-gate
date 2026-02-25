@@ -9,122 +9,132 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import com.cartumio.gate.dto.request.WaitlistUserConfirmationRequest;
+import com.cartumio.gate.dto.request.WaitlistUserRequest;
+import com.cartumio.gate.service.WaitlistUserService;
+import jakarta.persistence.EntityExistsException;
+import jakarta.persistence.EntityNotFoundException;
+import jakarta.servlet.http.HttpServletRequest;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 
-import com.cartumio.gate.dto.request.WaitlistUserConfirmationRequest;
-import com.cartumio.gate.dto.request.WaitlistUserRequest;
-import com.cartumio.gate.service.WaitlistUserService;
-
-import jakarta.persistence.EntityExistsException;
-import jakarta.persistence.EntityNotFoundException;
-import jakarta.servlet.http.HttpServletRequest;
-
 @DisplayName("WaitlistUserController - Tests")
 class WaitlistUserControllerTest {
 
-    private WaitlistUserController waitlistUserController;
-    private WaitlistUserService waitlistUserService;
-    private HttpServletRequest servletRequest;
-    private WaitlistUserRequest request;
+  private WaitlistUserController waitlistUserController;
+  private WaitlistUserService waitlistUserService;
+  private HttpServletRequest servletRequest;
+  private WaitlistUserRequest request;
 
-    private static final String EMAIL = "john.doe@example.com";
-    private static final String FIRST_NAME = "John";
-    private static final String LAST_NAME = "Doe";
-    private static final String ACCEPT_LANGUAGE = "pt-BR";
-    private static final String TOKEN = "test-token-123";
+  private static final String EMAIL = "john.doe@example.com";
+  private static final String FIRST_NAME = "John";
+  private static final String LAST_NAME = "Doe";
+  private static final String ACCEPT_LANGUAGE = "pt-BR";
+  private static final String TOKEN = "test-token-123";
 
-    @BeforeEach
-    void setUp() {
-        waitlistUserService = mock(WaitlistUserService.class);
-        waitlistUserController = new WaitlistUserController(waitlistUserService);
-        servletRequest = mock(HttpServletRequest.class);
-        request = new WaitlistUserRequest(FIRST_NAME, LAST_NAME, EMAIL);
-    }
+  @BeforeEach
+  void setUp() {
+    waitlistUserService = mock(WaitlistUserService.class);
+    waitlistUserController = new WaitlistUserController(waitlistUserService);
+    servletRequest = mock(HttpServletRequest.class);
+    request = new WaitlistUserRequest(FIRST_NAME, LAST_NAME, EMAIL);
+  }
 
-    @Test
-    @DisplayName("Should create or resend confirmation email successfully and return 200 OK")
-    void testCreateOrResendConfirmationEmailSuccessfully() {
-        when(servletRequest.getHeader("Accept-Language")).thenReturn(ACCEPT_LANGUAGE);
+  @Test
+  @DisplayName("Should create or resend confirmation email successfully and return 200 OK")
+  void testCreateOrResendConfirmationEmailSuccessfully() {
+    when(servletRequest.getHeader("Accept-Language")).thenReturn(ACCEPT_LANGUAGE);
 
-        ResponseEntity<Void> response = waitlistUserController.createOrResendConfirmationEmail(request, servletRequest);
-
-        verify(waitlistUserService).createOrResendConfirmationEmail(any(WaitlistUserRequest.class), eq(ACCEPT_LANGUAGE));
-        assert response.getStatusCode() == HttpStatus.OK : "Status should be OK";
-    }
-
-    @Test
-    @DisplayName("Should handle null Accept-Language header")
-    void testCreateOrResendWithNullAcceptLanguage() {
-        when(servletRequest.getHeader("Accept-Language")).thenReturn(null);
-
-        ResponseEntity<Void> response = waitlistUserController.createOrResendConfirmationEmail(request, servletRequest);
-
-        verify(waitlistUserService).createOrResendConfirmationEmail(any(WaitlistUserRequest.class), eq(null));
-        assert response.getStatusCode() == HttpStatus.OK : "Status should be OK";
-    }
-
-    @Test
-    @DisplayName("Should call service with correct request and accept-language")
-    void testCreateOrResendCallsServiceWithCorrectParameters() {
-        when(servletRequest.getHeader("Accept-Language")).thenReturn(ACCEPT_LANGUAGE);
-
+    ResponseEntity<Void> response =
         waitlistUserController.createOrResendConfirmationEmail(request, servletRequest);
 
-        verify(waitlistUserService).createOrResendConfirmationEmail(request, ACCEPT_LANGUAGE);
-    }
+    verify(waitlistUserService)
+        .createOrResendConfirmationEmail(any(WaitlistUserRequest.class), eq(ACCEPT_LANGUAGE));
+    assert response.getStatusCode() == HttpStatus.OK : "Status should be OK";
+  }
 
-    @Test
-    @DisplayName("Should propagate EntityExistsException when user already exists and is confirmed")
-    void testCreateOrResendThrowsWhenUserExistsAndConfirmed() {
-        when(servletRequest.getHeader("Accept-Language")).thenReturn(ACCEPT_LANGUAGE);
-        doThrow(new EntityExistsException("Waitlist user already exists and is confirmed"))
-                .when(waitlistUserService).createOrResendConfirmationEmail(request, ACCEPT_LANGUAGE);
+  @Test
+  @DisplayName("Should handle null Accept-Language header")
+  void testCreateOrResendWithNullAcceptLanguage() {
+    when(servletRequest.getHeader("Accept-Language")).thenReturn(null);
 
-        EntityExistsException exception = assertThrows(EntityExistsException.class,
-                () -> waitlistUserController.createOrResendConfirmationEmail(request, servletRequest));
+    ResponseEntity<Void> response =
+        waitlistUserController.createOrResendConfirmationEmail(request, servletRequest);
 
-        verify(waitlistUserService).createOrResendConfirmationEmail(request, ACCEPT_LANGUAGE);
-        assertEquals("Waitlist user already exists and is confirmed", exception.getMessage());
-    }
+    verify(waitlistUserService)
+        .createOrResendConfirmationEmail(any(WaitlistUserRequest.class), eq(null));
+    assert response.getStatusCode() == HttpStatus.OK : "Status should be OK";
+  }
 
-    @Test
-    @DisplayName("Should confirm waitlist user successfully and return 200 OK")
-    void testConfirmWaitlistUserSuccessfully() {
-        WaitlistUserConfirmationRequest confirmationRequest = new WaitlistUserConfirmationRequest(TOKEN);
+  @Test
+  @DisplayName("Should call service with correct request and accept-language")
+  void testCreateOrResendCallsServiceWithCorrectParameters() {
+    when(servletRequest.getHeader("Accept-Language")).thenReturn(ACCEPT_LANGUAGE);
 
-        ResponseEntity<Void> response = waitlistUserController.confirmWaitlistUser(confirmationRequest);
+    waitlistUserController.createOrResendConfirmationEmail(request, servletRequest);
 
-        verify(waitlistUserService).confirmWaitlistUser(TOKEN);
-        assert response.getStatusCode() == HttpStatus.OK : "Status should be OK";
-    }
+    verify(waitlistUserService).createOrResendConfirmationEmail(request, ACCEPT_LANGUAGE);
+  }
 
-    @Test
-    @DisplayName("Should return 400 Bad Request when token is invalid")
-    void testConfirmWaitlistUserInvalidToken() {
-        WaitlistUserConfirmationRequest confirmationRequest = new WaitlistUserConfirmationRequest(TOKEN);
-        doThrow(new IllegalArgumentException("Invalid or expired token"))
-                .when(waitlistUserService).confirmWaitlistUser(TOKEN);
+  @Test
+  @DisplayName("Should propagate EntityExistsException when user already exists and is confirmed")
+  void testCreateOrResendThrowsWhenUserExistsAndConfirmed() {
+    when(servletRequest.getHeader("Accept-Language")).thenReturn(ACCEPT_LANGUAGE);
+    doThrow(new EntityExistsException("Waitlist user already exists and is confirmed"))
+        .when(waitlistUserService)
+        .createOrResendConfirmationEmail(request, ACCEPT_LANGUAGE);
 
-        ResponseEntity<Void> response = waitlistUserController.confirmWaitlistUser(confirmationRequest);
+    EntityExistsException exception =
+        assertThrows(
+            EntityExistsException.class,
+            () -> waitlistUserController.createOrResendConfirmationEmail(request, servletRequest));
 
-        verify(waitlistUserService).confirmWaitlistUser(TOKEN);
-        assert response.getStatusCode() == HttpStatus.BAD_REQUEST : "Status should be BAD_REQUEST";
-    }
+    verify(waitlistUserService).createOrResendConfirmationEmail(request, ACCEPT_LANGUAGE);
+    assertEquals("Waitlist user already exists and is confirmed", exception.getMessage());
+  }
 
-    @Test
-    @DisplayName("Should return 404 Not Found when waitlist user not found")
-    void testConfirmWaitlistUserNotFound() {
-        WaitlistUserConfirmationRequest confirmationRequest = new WaitlistUserConfirmationRequest(TOKEN);
-        doThrow(new EntityNotFoundException("Waitlist user not found"))
-                .when(waitlistUserService).confirmWaitlistUser(TOKEN);
+  @Test
+  @DisplayName("Should confirm waitlist user successfully and return 200 OK")
+  void testConfirmWaitlistUserSuccessfully() {
+    WaitlistUserConfirmationRequest confirmationRequest =
+        new WaitlistUserConfirmationRequest(TOKEN);
 
-        ResponseEntity<Void> response = waitlistUserController.confirmWaitlistUser(confirmationRequest);
+    ResponseEntity<Void> response = waitlistUserController.confirmWaitlistUser(confirmationRequest);
 
-        verify(waitlistUserService).confirmWaitlistUser(TOKEN);
-        assert response.getStatusCode() == HttpStatus.NOT_FOUND : "Status should be NOT_FOUND";
-    }
+    verify(waitlistUserService).confirmWaitlistUser(TOKEN);
+    assert response.getStatusCode() == HttpStatus.OK : "Status should be OK";
+  }
+
+  @Test
+  @DisplayName("Should return 400 Bad Request when token is invalid")
+  void testConfirmWaitlistUserInvalidToken() {
+    WaitlistUserConfirmationRequest confirmationRequest =
+        new WaitlistUserConfirmationRequest(TOKEN);
+    doThrow(new IllegalArgumentException("Invalid or expired token"))
+        .when(waitlistUserService)
+        .confirmWaitlistUser(TOKEN);
+
+    ResponseEntity<Void> response = waitlistUserController.confirmWaitlistUser(confirmationRequest);
+
+    verify(waitlistUserService).confirmWaitlistUser(TOKEN);
+    assert response.getStatusCode() == HttpStatus.BAD_REQUEST : "Status should be BAD_REQUEST";
+  }
+
+  @Test
+  @DisplayName("Should return 404 Not Found when waitlist user not found")
+  void testConfirmWaitlistUserNotFound() {
+    WaitlistUserConfirmationRequest confirmationRequest =
+        new WaitlistUserConfirmationRequest(TOKEN);
+    doThrow(new EntityNotFoundException("Waitlist user not found"))
+        .when(waitlistUserService)
+        .confirmWaitlistUser(TOKEN);
+
+    ResponseEntity<Void> response = waitlistUserController.confirmWaitlistUser(confirmationRequest);
+
+    verify(waitlistUserService).confirmWaitlistUser(TOKEN);
+    assert response.getStatusCode() == HttpStatus.NOT_FOUND : "Status should be NOT_FOUND";
+  }
 }

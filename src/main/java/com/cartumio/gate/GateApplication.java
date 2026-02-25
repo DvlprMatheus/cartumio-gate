@@ -10,8 +10,7 @@ import org.springframework.scheduling.annotation.EnableScheduling;
 @ConfigurationPropertiesScan
 public class GateApplication {
 
-	public static void main(String[] args) {
-		SpringApplication.run(GateApplication.class, args);
-	}
-
+  public static void main(String[] args) {
+    SpringApplication.run(GateApplication.class, args);
+  }
 }

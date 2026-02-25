@@ -15,16 +15,16 @@ import lombok.Setter;
 @NoArgsConstructor
 @Table(name = "system_locales")
 public class SystemLocale extends AbstractEntity {
-    
-    @Column(name = "code", nullable = false, unique = true, length = 5)
-    private String code;
 
-    @Column(name = "language", nullable = false, length = 50)
-    private String language;
+  @Column(name = "code", nullable = false, unique = true, length = 5)
+  private String code;
 
-    @Column(name = "country", nullable = false, length = 50)
-    private String country;
+  @Column(name = "language", nullable = false, length = 50)
+  private String language;
 
-    @Column(name = "active", nullable = false)
-    private boolean active;
+  @Column(name = "country", nullable = false, length = 50)
+  private String country;
+
+  @Column(name = "active", nullable = false)
+  private boolean active;
 }
