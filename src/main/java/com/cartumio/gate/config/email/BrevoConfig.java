@@ -4,7 +4,7 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
-import org.springframework.web.reactive.function.client.WebClient;
+import org.springframework.web.client.RestClient;
 
 import lombok.AllArgsConstructor;
 
@@ -15,8 +15,8 @@ public class BrevoConfig {
     private final BrevoProperties properties;
 
     @Bean
-    public WebClient brevoClient() {
-        return WebClient.builder()
+    public RestClient brevoRestClient() {
+        return RestClient.builder()
             .baseUrl(properties.getBaseUrl())
             .defaultHeader("api-key", properties.getApiKey())
             .defaultHeader(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE)

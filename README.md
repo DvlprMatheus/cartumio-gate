@@ -46,7 +46,6 @@ implementation 'org.springframework.boot:spring-boot-starter-data-jpa'
 implementation 'org.springframework.boot:spring-boot-starter-flyway'
 implementation 'org.springframework.boot:spring-boot-starter-validation'
 implementation 'org.springframework.boot:spring-boot-starter-webmvc'
-implementation 'org.springframework.boot:spring-boot-starter-webflux'
 implementation 'org.springframework.boot:spring-boot-starter-amqp'
 
 // Database
@@ -555,8 +554,8 @@ export POSTGRES_URL=jdbc:postgresql://localhost:5432/cartumio_gate
 # Brevo
 export BREVO_API_KEY=sua_chave_api_brevo
 export BREVO_API_BASE_URL=https://api.brevo.com/v3
-export BREVO_DEFAULT_SENDER_NAME=Cartumio
-export BREVO_DEFAULT_SENDER_EMAIL=noreply@cartumio.com
+export BREVO_DEFAULT_SENDER_NAME=Sender
+export BREVO_DEFAULT_SENDER_EMAIL=sender@dominio.com
 
 # Origin (frontend)
 export ORIGIN_BASE_URL=http://localhost:3000

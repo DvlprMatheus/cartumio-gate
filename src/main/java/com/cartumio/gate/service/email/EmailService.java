@@ -6,7 +6,7 @@ import java.util.stream.Collectors;
 
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Service;
-import org.springframework.web.reactive.function.client.WebClient;
+import org.springframework.web.client.RestClient;
 
 import com.cartumio.gate.domain.email.Email;
 import com.cartumio.gate.domain.email.EmailUser;
@@ -24,10 +24,10 @@ import lombok.extern.slf4j.Slf4j;
 @Service
 public class EmailService {
 
-    private final WebClient brevoClient;
+    private final RestClient brevoRestClient;
 
-    public EmailService(@Qualifier("brevoClient") WebClient brevoClient) {
-        this.brevoClient = brevoClient;
+    public EmailService(@Qualifier("brevoRestClient") RestClient brevoRestClient) {
+        this.brevoRestClient = brevoRestClient;
     }
 
     public void processEmail(Email email) {
@@ -90,12 +90,11 @@ public class EmailService {
                         .map(EmailUserRequest::email)
                         .collect(Collectors.joining(", ")));
         try {
-            brevoClient.post()
+            brevoRestClient.post()
                     .uri("/smtp/email")
-                    .bodyValue(email)
+                    .body(email)
                     .retrieve()
-                    .bodyToMono(EmailResponse.class)
-                    .block();
+                    .toEntity(EmailResponse.class);
             log.info("Email sent successfully via Brevo API | subject={}", email.subject());
         } catch (Exception e) {
             log.error("Error sending email via Brevo API | subject={}, error={}", 
